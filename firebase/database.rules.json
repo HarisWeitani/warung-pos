@@ -1,0 +1,109 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "appConfig": {
+      ".read": "auth != null",
+      ".write": false
+    },
+
+    "menuCategories": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "menuItems": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "variantGroups": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "variantOptions": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "tables": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.token.role === 'owner'"
+      }
+    },
+
+    "paymentMethods": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.token.role === 'owner'"
+      }
+    },
+
+    "shifts": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "bills": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "orderItems": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "payments": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "expenses": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
+      }
+    },
+
+    "stockItems": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.token.role === 'owner'"
+      }
+    },
+
+    "stockBatches": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.token.role === 'owner'"
+      }
+    },
+
+    "opnames": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && auth.token.role === 'owner'"
+      }
+    }
+  }
+}
