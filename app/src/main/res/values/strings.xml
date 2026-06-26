@@ -1,3 +1,55 @@
 <resources>
-    <string name="app_name">Warung Pos</string>
+    <string name="app_name">Warung POS</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_order">Order</string>
+    <string name="nav_tables">Tables</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_more">More</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_close">Close</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
+    <string name="action_add">Add</string>
+    <string name="action_edit">Edit</string>
+
+    <!-- Shift -->
+    <string name="shift_open">Open Shift</string>
+    <string name="shift_close">Close Shift</string>
+    <string name="shift_opening_float">Opening Cash Float</string>
+    <string name="shift_operator_name">Operator Name</string>
+
+    <!-- Order -->
+    <string name="order_confirm">Confirm Order</string>
+    <string name="order_sold_out">Sold Out</string>
+    <string name="order_cart_empty">Cart is empty</string>
+    <string name="order_add_to_cart">Add to Cart</string>
+
+    <!-- Payment -->
+    <string name="payment_pay">Pay</string>
+    <string name="payment_change">Change</string>
+    <string name="payment_tendered">Amount Tendered</string>
+    <string name="payment_remaining">Remaining</string>
+
+    <!-- Auth -->
+    <string name="auth_login">Login</string>
+    <string name="auth_logout">Logout</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_login_failed">Login failed. Please check your email and password.</string>
+
+    <!-- Settings -->
+    <string name="settings_language">Language</string>
+    <string name="settings_tables">Table Setup</string>
+    <string name="settings_payment_methods">Payment Methods</string>
+    <string name="settings_about">About</string>
+
+    <!-- Version gate -->
+    <string name="update_required_title">Update Available</string>
+    <string name="update_required_message">Please ask the store owner for the latest APK.</string>
 </resources>

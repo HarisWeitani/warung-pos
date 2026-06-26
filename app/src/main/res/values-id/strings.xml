@@ -1,0 +1,55 @@
+<resources>
+    <string name="app_name">Warung POS</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_order">Order</string>
+    <string name="nav_tables">Meja</string>
+    <string name="nav_reports">Laporan</string>
+    <string name="nav_more">Lainnya</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Simpan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_confirm">Konfirmasi</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_yes">Ya</string>
+    <string name="action_no">Tidak</string>
+    <string name="action_add">Tambah</string>
+    <string name="action_edit">Ubah</string>
+
+    <!-- Shift -->
+    <string name="shift_open">Buka Shift</string>
+    <string name="shift_close">Tutup Shift</string>
+    <string name="shift_opening_float">Modal Awal</string>
+    <string name="shift_operator_name">Nama Operator</string>
+
+    <!-- Order -->
+    <string name="order_confirm">Konfirmasi Pesanan</string>
+    <string name="order_sold_out">Habis</string>
+    <string name="order_cart_empty">Keranjang kosong</string>
+    <string name="order_add_to_cart">Tambah ke Keranjang</string>
+
+    <!-- Payment -->
+    <string name="payment_pay">Bayar</string>
+    <string name="payment_change">Kembalian</string>
+    <string name="payment_tendered">Jumlah Bayar</string>
+    <string name="payment_remaining">Sisa</string>
+
+    <!-- Auth -->
+    <string name="auth_login">Masuk</string>
+    <string name="auth_logout">Keluar</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Kata Sandi</string>
+    <string name="auth_login_failed">Login gagal. Periksa email dan kata sandi.</string>
+
+    <!-- Settings -->
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_tables">Pengaturan Meja</string>
+    <string name="settings_payment_methods">Metode Pembayaran</string>
+    <string name="settings_about">Tentang Aplikasi</string>
+
+    <!-- Version gate -->
+    <string name="update_required_title">Versi Baru Tersedia</string>
+    <string name="update_required_message">Silakan minta update APK ke pemilik toko.</string>
+</resources>
