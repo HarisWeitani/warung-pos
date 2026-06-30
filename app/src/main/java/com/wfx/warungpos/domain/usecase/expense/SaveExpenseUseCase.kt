@@ -1,7 +1,7 @@
 package com.wfx.warungpos.domain.usecase.expense
 
 import com.wfx.warungpos.core.common.ExpenseCategory
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
@@ -14,7 +14,7 @@ import javax.inject.Inject
 class SaveExpenseUseCase @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val shiftRepository: ShiftRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
 ) {
     suspend operator fun invoke(category: ExpenseCategory, amount: Long, note: String?): Result<Unit> {
         if (amount <= 0) return Result.failure(IllegalArgumentException("Amount must be greater than 0"))
@@ -27,11 +27,11 @@ class SaveExpenseUseCase @Inject constructor(
                 category = category,
                 amount = amount,
                 note = note?.ifBlank { null },
-                createdBy = sessionManager.currentUser.value?.uid ?: "",
+                createdBy = sessionProvider.currentUserId ?: "",
                 createdAt = now,
                 updatedAt = now,
                 syncStatus = SyncStatus.PENDING,
-                deviceId = sessionManager.deviceId,
+                deviceId = sessionProvider.deviceId,
             )
         )
         return Result.success(Unit)

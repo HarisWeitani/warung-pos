@@ -22,7 +22,7 @@ import javax.inject.Singleton
 class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val firebaseAuth: FirebaseAuth,
-) {
+) : SessionProvider {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val prefs by lazy {
@@ -38,7 +38,7 @@ class SessionManager @Inject constructor(
         )
     }
 
-    val deviceId: String by lazy {
+    override val deviceId: String by lazy {
         prefs.getString(KEY_DEVICE_ID, null) ?: UuidGenerator.generate().also { newId ->
             prefs.edit().putString(KEY_DEVICE_ID, newId).apply()
         }
@@ -49,6 +49,9 @@ class SessionManager @Inject constructor(
 
     private val _userRole = MutableStateFlow(UserRole.NONE)
     val userRole: StateFlow<UserRole> = _userRole.asStateFlow()
+
+    override val currentUserId: String? get() = _currentUser.value?.uid
+    override val currentUserRole: UserRole get() = _userRole.value
 
     init {
         // AuthStateListener runs on the main thread; role refresh is dispatched to Default

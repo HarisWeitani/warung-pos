@@ -1,5 +1,7 @@
 package com.wfx.warungpos.core.di
 
+import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.data.repository.BillRepositoryImpl
 import com.wfx.warungpos.data.repository.ExpenseRepositoryImpl
 import com.wfx.warungpos.data.repository.MenuRepositoryImpl
@@ -37,4 +39,5 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindExpenseRepository(impl: ExpenseRepositoryImpl): ExpenseRepository
     @Binds @Singleton abstract fun bindStockRepository(impl: StockRepositoryImpl): StockRepository
     @Binds @Singleton abstract fun bindReportRepository(impl: ReportRepositoryImpl): ReportRepository
+    @Binds @Singleton abstract fun bindSessionProvider(impl: SessionManager): SessionProvider
 }

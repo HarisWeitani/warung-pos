@@ -1,6 +1,6 @@
 package com.wfx.warungpos.domain.usecase.shift
 
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.ShiftStatus
 import com.wfx.warungpos.core.common.UserRole
 import com.wfx.warungpos.core.util.DateUtil
@@ -18,11 +18,11 @@ class CloseShiftUseCase @Inject constructor(
     private val billRepository: BillRepository,
     private val paymentRepository: PaymentRepository,
     private val expenseRepository: ExpenseRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
     private val generateZReportUseCase: GenerateZReportUseCase,
 ) {
     suspend operator fun invoke(countedCash: Long): Result<String> {
-        if (sessionManager.userRole.value != UserRole.OWNER) {
+        if (sessionProvider.currentUserRole != UserRole.OWNER) {
             return Result.failure(InsufficientPermissionsException())
         }
         val shift = shiftRepository.getOpenShift() ?: return Result.failure(ShiftNotOpenException())
@@ -41,7 +41,7 @@ class CloseShiftUseCase @Inject constructor(
         shiftRepository.saveShift(
             shift.copy(
                 status = ShiftStatus.CLOSED,
-                closedBy = sessionManager.currentUser.value?.uid,
+                closedBy = sessionProvider.currentUserId,
                 closedAt = now,
                 closingFloat = countedCash,
                 updatedAt = now,

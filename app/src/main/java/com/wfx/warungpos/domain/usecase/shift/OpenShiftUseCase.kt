@@ -1,6 +1,6 @@
 package com.wfx.warungpos.domain.usecase.shift
 
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.ShiftStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 class OpenShiftUseCase @Inject constructor(
     private val shiftRepository: ShiftRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
 ) {
     suspend operator fun invoke(openingFloat: Long): Result<String> {
         if (shiftRepository.getOpenShift() != null) {
@@ -20,7 +20,7 @@ class OpenShiftUseCase @Inject constructor(
         val now = DateUtil.nowEpochMs()
         val shift = Shift(
             id = UuidGenerator.generate(),
-            openedBy = sessionManager.currentUser.value?.uid ?: "",
+            openedBy = sessionProvider.currentUserId ?: "",
             closedBy = null,
             status = ShiftStatus.OPEN,
             openedAt = now,
@@ -29,7 +29,7 @@ class OpenShiftUseCase @Inject constructor(
             closingFloat = null,
             updatedAt = now,
             syncStatus = SyncStatus.PENDING,
-            deviceId = sessionManager.deviceId,
+            deviceId = sessionProvider.deviceId,
         )
         shiftRepository.saveShift(shift)
         return Result.success(shift.id)

@@ -1,7 +1,7 @@
 package com.wfx.warungpos.domain.usecase.payment
 
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
@@ -19,7 +19,7 @@ class ProcessPaymentUseCase @Inject constructor(
     private val billRepository: BillRepository,
     private val paymentRepository: PaymentRepository,
     private val shiftRepository: ShiftRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
 ) {
     suspend operator fun invoke(billId: String, rows: List<PaymentRow>): Result<Unit> {
         shiftRepository.getOpenShift() ?: return Result.failure(ShiftNotOpenException())
@@ -40,7 +40,7 @@ class ProcessPaymentUseCase @Inject constructor(
         }
 
         val now = DateUtil.nowEpochMs()
-        val deviceId = sessionManager.deviceId
+        val deviceId = sessionProvider.deviceId
         for (row in rows) {
             paymentRepository.recordPayment(
                 Payment(

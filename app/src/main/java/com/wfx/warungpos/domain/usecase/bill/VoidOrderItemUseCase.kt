@@ -1,6 +1,6 @@
 package com.wfx.warungpos.domain.usecase.bill
 
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.VoidReason
 import com.wfx.warungpos.domain.repository.BillRepository
 import com.wfx.warungpos.domain.repository.OrderRepository
@@ -9,7 +9,7 @@ import javax.inject.Inject
 class VoidOrderItemUseCase @Inject constructor(
     private val orderRepository: OrderRepository,
     private val billRepository: BillRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
 ) {
     suspend operator fun invoke(itemId: String, reason: VoidReason, note: String?): Result<Unit> {
         if (reason == VoidReason.OTHER && note.isNullOrBlank()) {
@@ -17,7 +17,7 @@ class VoidOrderItemUseCase @Inject constructor(
         }
         val item = orderRepository.getItemById(itemId)
             ?: return Result.failure(IllegalArgumentException("Order item not found"))
-        val uid = sessionManager.currentUser.value?.uid ?: ""
+        val uid = sessionProvider.currentUserId ?: ""
         orderRepository.voidItem(itemId, reason, uid)
         // Recalculate bill totals after voiding
         val bill = billRepository.getBill(item.billId) ?: return Result.success(Unit)

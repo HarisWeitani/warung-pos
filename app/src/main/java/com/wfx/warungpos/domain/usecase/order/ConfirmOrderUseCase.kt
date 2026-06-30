@@ -3,7 +3,7 @@ package com.wfx.warungpos.domain.usecase.order
 import com.wfx.warungpos.core.common.BillStatus
 import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.OrderItemStatus
-import com.wfx.warungpos.core.common.SessionManager
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
@@ -28,7 +28,7 @@ class ConfirmOrderUseCase @Inject constructor(
     private val orderRepository: OrderRepository,
     private val menuRepository: MenuRepository,
     private val shiftRepository: ShiftRepository,
-    private val sessionManager: SessionManager,
+    private val sessionProvider: SessionProvider,
 ) {
     suspend operator fun invoke(cart: List<CartItem>, destination: OrderDestination): Result<String> {
         if (cart.isEmpty()) return Result.failure(EmptyCartException())
@@ -46,7 +46,7 @@ class ConfirmOrderUseCase @Inject constructor(
         }
 
         val now = DateUtil.nowEpochMs()
-        val deviceId = sessionManager.deviceId
+        val deviceId = sessionProvider.deviceId
 
         return when (destination) {
             is OrderDestination.GrabAndGo -> {
