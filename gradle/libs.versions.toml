@@ -4,6 +4,7 @@ kotlin = "2.2.10"
 ksp = "2.2.10-2.0.2"
 hilt = "2.60"
 googleServices = "4.4.2"
+firebaseCrashlyticsPlugin = "3.0.6"
 composeBom = "2026.02.01"
 firebaseBom = "34.15.0"
 room = "2.8.4"
@@ -36,6 +37,7 @@ hilt-androidx-compiler = { group = "androidx.hilt", name = "hilt-compiler", vers
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 
 # Room
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -91,4 +93,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 

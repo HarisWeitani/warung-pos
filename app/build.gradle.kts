@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 // Release keystore credentials are kept out of git in local.properties:
@@ -85,6 +86,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.database)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.crashlytics)
 
     // ── Room ──────────────────────────────────────────────────────────────────
     implementation(libs.room.runtime)
