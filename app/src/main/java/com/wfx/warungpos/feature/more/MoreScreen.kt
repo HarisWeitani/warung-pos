@@ -55,6 +55,9 @@ fun MoreScreen(
     onNavigateToShiftClose: () -> Unit,
     onNavigateToShiftHistory: () -> Unit,
     onNavigateToExpenses: () -> Unit,
+    onNavigateToStock: () -> Unit,
+    onNavigateToStockBatch: () -> Unit,
+    onNavigateToOpname: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showSignOutDialog by remember { mutableStateOf(false) }
@@ -102,6 +105,14 @@ fun MoreScreen(
             item {
                 MoreSectionHeader("Expenses")
                 MoreItem("Expense Log", Icons.Default.Payments, onClick = onNavigateToExpenses)
+                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+            }
+
+            item {
+                MoreSectionHeader("Stock")
+                MoreItem("Stock", Icons.Default.Restaurant, onClick = onNavigateToStock)
+                MoreItem("Stock Batches", Icons.Default.Restaurant, onClick = onNavigateToStockBatch)
+                MoreItem("Stock Opname", Icons.Default.Restaurant, onClick = onNavigateToOpname)
                 HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             }
 

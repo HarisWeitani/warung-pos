@@ -37,3 +37,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object ExpenseCategorySettingsRoute
 @Serializable data object LanguageSettingsRoute
 @Serializable data object AboutRoute
+
+// ── Stock (P2) ───────────────────────────────────────────────────────────────
+@Serializable data object StockRoute
+@Serializable data object StockBatchRoute
+@Serializable data object OpnameRoute

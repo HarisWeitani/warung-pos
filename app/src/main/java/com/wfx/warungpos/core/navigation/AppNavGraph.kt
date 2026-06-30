@@ -49,6 +49,7 @@ import com.wfx.warungpos.feature.shift.ShiftOpenScreen
 import com.wfx.warungpos.feature.shift.ShiftOpenViewModel
 import com.wfx.warungpos.feature.shift.ZReportScreen
 import com.wfx.warungpos.feature.shift.ZReportViewModel
+import com.wfx.warungpos.feature.stock.ComingSoonScreen
 import com.wfx.warungpos.feature.tables.TablesScreen
 import com.wfx.warungpos.feature.tables.TablesViewModel
 
@@ -247,6 +248,9 @@ fun AppNavGraph(
                 onNavigateToShiftClose = { navController.navigate(ShiftCloseRoute) },
                 onNavigateToShiftHistory = { navController.navigate(ShiftHistoryRoute) },
                 onNavigateToExpenses = { navController.navigate(ExpenseLogRoute) },
+                onNavigateToStock = { navController.navigate(StockRoute) },
+                onNavigateToStockBatch = { navController.navigate(StockBatchRoute) },
+                onNavigateToOpname = { navController.navigate(OpnameRoute) },
             )
         }
 
@@ -354,6 +358,18 @@ fun AppNavGraph(
 
         composable<AboutRoute> {
             AboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<StockRoute> {
+            ComingSoonScreen(title = "Stock", onBack = { navController.popBackStack() })
+        }
+
+        composable<StockBatchRoute> {
+            ComingSoonScreen(title = "Stock Batches", onBack = { navController.popBackStack() })
+        }
+
+        composable<OpnameRoute> {
+            ComingSoonScreen(title = "Stock Opname", onBack = { navController.popBackStack() })
         }
     }
 }
