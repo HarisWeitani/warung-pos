@@ -69,10 +69,19 @@ fun AppNavGraph(
                     navController.navigate(BillDetailRoute(billId))
                 }
             }
+            LaunchedEffect(vm) {
+                vm.navToTables.collect {
+                    navController.navigate(TablesRoute)
+                }
+            }
             OrderScreen(
                 state = state,
                 onBillClick = { navController.navigate(BillDetailRoute(it)) },
-                onNewBill = vm::createUpfrontBill,
+                onShowDestinationSheet = vm::showDestinationSheet,
+                onDismissDestinationSheet = vm::dismissDestinationSheet,
+                onGrabAndGo = vm::createUpfrontBill,
+                onNewTable = vm::onNewTableSelected,
+                onExistingBillSelected = vm::onExistingBillSelected,
                 onOpenShift = { navController.navigate(ShiftOpenRoute) },
             )
         }

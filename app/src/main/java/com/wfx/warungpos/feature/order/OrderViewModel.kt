@@ -15,17 +15,20 @@ import com.wfx.warungpos.domain.repository.ShiftRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class OrderUiState(
     val openBills: List<Bill> = emptyList(),
     val openShift: Shift? = null,
+    val showDestinationSheet: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,17 +38,42 @@ class OrderViewModel @Inject constructor(
     private val sessionManager: SessionManager,
 ) : ViewModel() {
 
+    private val _showDestinationSheet = MutableStateFlow(false)
+
     val uiState: StateFlow<OrderUiState> = combine(
         billRepository.observeOpenBills(),
         shiftRepository.observeOpenShift(),
-    ) { bills, shift ->
-        OrderUiState(openBills = bills, openShift = shift)
+        _showDestinationSheet,
+    ) { bills, shift, showSheet ->
+        OrderUiState(openBills = bills, openShift = shift, showDestinationSheet = showSheet)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OrderUiState())
 
     private val _navToBill = Channel<String>(Channel.BUFFERED)
     val navToBill: Flow<String> = _navToBill.receiveAsFlow()
 
+    private val _navToTables = Channel<Unit>(Channel.BUFFERED)
+    val navToTables: Flow<Unit> = _navToTables.receiveAsFlow()
+
+    fun showDestinationSheet() {
+        _showDestinationSheet.update { true }
+    }
+
+    fun dismissDestinationSheet() {
+        _showDestinationSheet.update { false }
+    }
+
+    fun onExistingBillSelected(billId: String) {
+        _showDestinationSheet.update { false }
+        viewModelScope.launch { _navToBill.send(billId) }
+    }
+
+    fun onNewTableSelected() {
+        _showDestinationSheet.update { false }
+        viewModelScope.launch { _navToTables.send(Unit) }
+    }
+
     fun createUpfrontBill() {
+        _showDestinationSheet.update { false }
         viewModelScope.launch {
             val shift = shiftRepository.getOpenShift() ?: return@launch
             val now = DateUtil.nowEpochMs()

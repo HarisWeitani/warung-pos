@@ -31,16 +31,31 @@ import androidx.compose.ui.unit.dp
 import com.wfx.warungpos.core.util.CurrencyFormatter
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.domain.model.Bill
+import com.wfx.warungpos.feature.order.component.OrderDestinationSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderScreen(
     state: OrderUiState,
     onBillClick: (billId: String) -> Unit,
-    onNewBill: () -> Unit,
+    onShowDestinationSheet: () -> Unit,
+    onDismissDestinationSheet: () -> Unit,
+    onGrabAndGo: () -> Unit,
+    onNewTable: () -> Unit,
+    onExistingBillSelected: (billId: String) -> Unit,
     onOpenShift: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (state.showDestinationSheet) {
+        OrderDestinationSheet(
+            openBills = state.openBills,
+            onGrabAndGo = onGrabAndGo,
+            onNewTable = onNewTable,
+            onExistingBill = onExistingBillSelected,
+            onDismiss = onDismissDestinationSheet,
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -48,7 +63,7 @@ fun OrderScreen(
         },
         floatingActionButton = {
             if (state.openShift != null) {
-                FloatingActionButton(onClick = onNewBill) {
+                FloatingActionButton(onClick = onShowDestinationSheet) {
                     Icon(Icons.Default.Add, contentDescription = "New bill")
                 }
             }
