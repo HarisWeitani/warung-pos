@@ -55,7 +55,7 @@ import com.wfx.warungpos.data.local.entity.ZReportEntity
         StockOpnameEntity::class,
         StockOpnameLineEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

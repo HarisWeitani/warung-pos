@@ -101,4 +101,6 @@ class MenuRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteVariantGroup(id: String) = variantDao.deleteGroup(id)
+
+    override suspend fun deleteVariantOption(id: String) = variantDao.deleteOption(id)
 }

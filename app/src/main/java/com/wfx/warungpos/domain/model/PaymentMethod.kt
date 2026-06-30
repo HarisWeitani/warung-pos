@@ -6,6 +6,7 @@ data class PaymentMethod(
     val id: String,
     val name: String,
     val isActive: Boolean,
+    val isCash: Boolean,
     val sortOrder: Int,
     val updatedAt: Long,
     val syncStatus: SyncStatus,

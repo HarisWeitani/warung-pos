@@ -18,6 +18,7 @@ import com.wfx.warungpos.data.local.dao.StockOpnameDao
 import com.wfx.warungpos.data.local.dao.TableDao
 import com.wfx.warungpos.data.local.dao.VariantDao
 import com.wfx.warungpos.data.local.dao.ZReportDao
+import com.wfx.warungpos.data.local.db.MIGRATION_1_2
 import com.wfx.warungpos.data.local.db.WarungDatabase
 import dagger.Module
 import dagger.Provides
@@ -41,7 +42,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideWarungDatabase(@ApplicationContext context: Context): WarungDatabase =
-        Room.databaseBuilder(context, WarungDatabase::class.java, "warung_pos_db").build()
+        Room.databaseBuilder(context, WarungDatabase::class.java, "warung_pos_db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides fun provideMenuCategoryDao(db: WarungDatabase): MenuCategoryDao = db.menuCategoryDao()
     @Provides fun provideMenuItemDao(db: WarungDatabase): MenuItemDao = db.menuItemDao()

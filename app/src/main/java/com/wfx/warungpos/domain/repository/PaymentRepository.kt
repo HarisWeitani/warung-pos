@@ -11,6 +11,7 @@ interface PaymentRepository {
     fun observeAllPaymentMethods(): Flow<List<PaymentMethod>>
     suspend fun recordPayment(payment: Payment)
     suspend fun savePaymentMethod(method: PaymentMethod)
+    suspend fun getCashPaymentsTotalForShift(shiftId: String): Long
     suspend fun getPaymentBreakdownForShift(shiftId: String): List<PaymentBreakdown>
     suspend fun getPaymentBreakdownInRange(startEpoch: Long, endEpoch: Long): List<PaymentBreakdown>
 }

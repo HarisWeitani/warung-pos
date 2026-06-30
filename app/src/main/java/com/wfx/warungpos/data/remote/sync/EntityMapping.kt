@@ -152,6 +152,7 @@ internal fun DataSnapshot.toPaymentMethodEntity(): PaymentMethodEntity? {
         id = id,
         name = child("name").getValue(String::class.java) ?: return null,
         isActive = child("isActive").getValue(Boolean::class.java) ?: true,
+        isCash = child("isCash").getValue(Boolean::class.java) ?: false,
         sortOrder = (child("sortOrder").getValue(Long::class.java) ?: 0L).toInt(),
         updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
         syncStatus = synced,
@@ -253,7 +254,7 @@ internal fun OrderItemEntity.toRtdbMap(): Map<String, Any?> = mapOf(
 )
 
 internal fun PaymentMethodEntity.toRtdbMap(): Map<String, Any?> = mapOf(
-    "name" to name, "isActive" to isActive, "sortOrder" to sortOrder,
+    "name" to name, "isActive" to isActive, "isCash" to isCash, "sortOrder" to sortOrder,
     "updatedAt" to updatedAt, "deviceId" to deviceId,
 )
 

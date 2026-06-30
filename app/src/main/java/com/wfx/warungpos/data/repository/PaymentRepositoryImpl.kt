@@ -56,6 +56,9 @@ class PaymentRepositoryImpl @Inject constructor(
         sync.notifyPendingSync()
     }
 
+    override suspend fun getCashPaymentsTotalForShift(shiftId: String): Long =
+        paymentDao.getCashTotalForShift(shiftId)
+
     override suspend fun getPaymentBreakdownForShift(shiftId: String): List<PaymentBreakdown> =
         paymentDao.sumByMethodForShift(shiftId)
             .map { PaymentBreakdown(paymentMethodId = it.paymentMethodId, total = it.total) }

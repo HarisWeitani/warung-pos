@@ -21,6 +21,9 @@ interface BillDao {
     fun observeBillsForShift(shiftId: String): Flow<List<BillEntity>>
 
     @Query("SELECT * FROM bills WHERE id = :id")
+    fun observeById(id: String): Flow<BillEntity?>
+
+    @Query("SELECT * FROM bills WHERE id = :id")
     suspend fun getById(id: String): BillEntity?
 
     @Query("SELECT * FROM bills WHERE shiftId = :shiftId AND status = 'PAID'")
@@ -32,6 +35,9 @@ interface BillDao {
         ORDER BY paidAt DESC
     """)
     suspend fun getPaidBillsInRange(startEpoch: Long, endEpoch: Long): List<BillEntity>
+
+    @Query("SELECT * FROM bills WHERE status = 'OPEN' ORDER BY createdAt DESC")
+    suspend fun getOpenBills(): List<BillEntity>
 
     @Query("SELECT * FROM bills WHERE syncStatus = 'PENDING'")
     suspend fun getPendingSync(): List<BillEntity>

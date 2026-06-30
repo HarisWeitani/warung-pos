@@ -24,6 +24,9 @@ class BillRepositoryImpl @Inject constructor(
     override fun observeOpenBills(): Flow<List<Bill>> =
         billDao.observeOpenBills().map { it.map { e -> e.toDomain() } }
 
+    override fun observeBillById(id: String): Flow<Bill?> =
+        billDao.observeById(id).map { it?.toDomain() }
+
     override fun observeOpenBillForTable(tableId: String): Flow<Bill?> =
         billDao.observeOpenBillForTable(tableId).map { it?.toDomain() }
 
@@ -42,6 +45,9 @@ class BillRepositoryImpl @Inject constructor(
         )
         sync.notifyPendingSync()
     }
+
+    override suspend fun getOpenBills(): List<Bill> =
+        billDao.getOpenBills().map { it.toDomain() }
 
     override suspend fun getPaidBillsForShift(shiftId: String): List<Bill> =
         billDao.getPaidBillsForShift(shiftId).map { it.toDomain() }

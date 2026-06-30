@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object TablesRoute
 @Serializable data object ReportsRoute   // owner-only
 @Serializable data object MoreRoute
+@Serializable data object DashboardRoute // owner-only
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 @Serializable data object LoginRoute

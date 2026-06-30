@@ -21,4 +21,5 @@ interface MenuRepository {
     suspend fun saveVariantGroup(group: VariantGroup)
     suspend fun saveVariantOption(option: VariantOption)
     suspend fun deleteVariantGroup(id: String)
+    suspend fun deleteVariantOption(id: String)
 }

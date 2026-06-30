@@ -37,4 +37,9 @@ object DateUtil {
         LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), WIB).format(timeFormatter)
 
     fun nowEpochMs(): Long = System.currentTimeMillis()
+
+    fun todayRangeWib(): Pair<Long, Long> {
+        val now = nowEpochMs()
+        return Pair(startOfDay(now), endOfDay(now))
+    }
 }

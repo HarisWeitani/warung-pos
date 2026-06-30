@@ -36,6 +36,18 @@ interface PaymentDao {
     """)
     suspend fun sumByMethodInRange(startEpoch: Long, endEpoch: Long): List<PaymentSumByMethod>
 
+    @Query("""
+        SELECT COALESCE(SUM(p.amount), 0)
+        FROM payments p
+        WHERE p.billId IN (
+            SELECT id FROM bills WHERE shiftId = :shiftId AND status = 'PAID'
+        )
+        AND p.paymentMethodId IN (
+            SELECT id FROM payment_methods WHERE isCash = 1
+        )
+    """)
+    suspend fun getCashTotalForShift(shiftId: String): Long
+
     @Query("SELECT * FROM payments WHERE syncStatus = 'PENDING'")
     suspend fun getPendingSync(): List<PaymentEntity>
 }

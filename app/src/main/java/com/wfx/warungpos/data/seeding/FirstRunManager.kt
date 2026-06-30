@@ -12,12 +12,13 @@ private const val PREFS_NAME = "warung_first_run"
 private const val KEY_SEEDED = "seeded_v1"
 
 // Fixed IDs so seeding is idempotent across reinstalls and test runs
+// (id, name, sortOrder, isCash)
 private val DEFAULT_PAYMENT_METHODS = listOf(
-    Triple("pm_tunai", "Tunai", 1),
-    Triple("pm_qris", "QRIS", 2),
-    Triple("pm_gopay", "GoPay", 3),
-    Triple("pm_ovo", "OVO", 4),
-    Triple("pm_transfer", "Transfer Bank", 5),
+    Triple("pm_tunai", Pair("Tunai", true), 1),
+    Triple("pm_qris", Pair("QRIS", false), 2),
+    Triple("pm_gopay", Pair("GoPay", false), 3),
+    Triple("pm_ovo", Pair("OVO", false), 4),
+    Triple("pm_transfer", Pair("Transfer Bank", false), 5),
 )
 
 @Singleton
@@ -37,11 +38,13 @@ class FirstRunManager @Inject constructor(
 
     private suspend fun seedPaymentMethods() {
         val now = System.currentTimeMillis()
-        val entities = DEFAULT_PAYMENT_METHODS.map { (id, name, order) ->
+        val entities = DEFAULT_PAYMENT_METHODS.map { (id, meta, order) ->
+            val (name, isCash) = meta
             PaymentMethodEntity(
                 id = id,
                 name = name,
                 isActive = true,
+                isCash = isCash,
                 sortOrder = order,
                 updatedAt = now,
                 syncStatus = SyncStatus.SYNCED.name,

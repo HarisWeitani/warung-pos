@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,10 +27,16 @@ class AppPreferences @Inject constructor(
         )
     }
 
-    fun getLanguage(): String = prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE
+    private val _language by lazy {
+        MutableStateFlow(prefs.getString(KEY_LANGUAGE, DEFAULT_LANGUAGE) ?: DEFAULT_LANGUAGE)
+    }
+    val language: StateFlow<String> by lazy { _language.asStateFlow() }
+
+    fun getLanguage(): String = _language.value
 
     fun setLanguage(code: String) {
         prefs.edit().putString(KEY_LANGUAGE, code).apply()
+        _language.value = code
     }
 
     companion object {
