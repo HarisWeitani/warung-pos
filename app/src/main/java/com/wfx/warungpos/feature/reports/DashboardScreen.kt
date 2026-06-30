@@ -35,6 +35,7 @@ import com.wfx.warungpos.domain.model.PaymentBreakdown
 fun DashboardScreen(
     state: DashboardUiState,
     onBack: () -> Unit,
+    onNavigateToFullReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -117,6 +118,12 @@ fun DashboardScreen(
                             state.bestSellers.forEachIndexed { index, item -> BestSellerRow(index + 1, item) }
                         }
                     }
+                }
+            }
+
+            item {
+                androidx.compose.material3.TextButton(onClick = onNavigateToFullReport) {
+                    Text("View Full Report (date range, export)")
                 }
             }
 

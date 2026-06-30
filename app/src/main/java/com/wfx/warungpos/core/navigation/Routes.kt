@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object ReportsRoute   // owner-only
 @Serializable data object MoreRoute
 @Serializable data object DashboardRoute // owner-only
+@Serializable data object FullReportRoute // owner-only, P2
+@Serializable data object BestSellerRoute // owner-only, P2
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 @Serializable data object LoginRoute

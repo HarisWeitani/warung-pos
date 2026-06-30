@@ -1,6 +1,7 @@
 package com.wfx.warungpos
 
 import android.content.res.Configuration
+import android.view.ContextThemeWrapper
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,11 +58,16 @@ fun WarungPosApp(
     val isAuthenticated by viewModel.isAuthenticated.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
 
+    // ContextThemeWrapper (not createConfigurationContext) preserves the ContextWrapper chain
+    // back to the host Activity — hiltViewModel() and other Activity-context lookups (e.g. in
+    // SyncStatusBar below) require that chain to resolve the Hilt component / ViewModelStoreOwner.
     val baseContext = LocalContext.current
-    val localizedContext = remember(language) {
-        val config = Configuration(baseContext.resources.configuration)
-        config.setLocale(Locale(language))
-        baseContext.createConfigurationContext(config)
+    val localizedContext = remember(baseContext, language) {
+        ContextThemeWrapper(baseContext, 0).apply {
+            val config = Configuration(baseContext.resources.configuration)
+            config.setLocale(Locale(language))
+            applyOverrideConfiguration(config)
+        }
     }
 
     WarungPosTheme {

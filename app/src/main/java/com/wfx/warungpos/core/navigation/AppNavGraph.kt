@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,8 +29,11 @@ import com.wfx.warungpos.feature.order.OrderScreen
 import com.wfx.warungpos.feature.order.OrderViewModel
 import com.wfx.warungpos.feature.payment.PaymentScreen
 import com.wfx.warungpos.feature.payment.PaymentViewModel
+import com.wfx.warungpos.feature.reports.BestSellerScreen
 import com.wfx.warungpos.feature.reports.DashboardScreen
 import com.wfx.warungpos.feature.reports.DashboardViewModel
+import com.wfx.warungpos.feature.reports.ReportScreen
+import com.wfx.warungpos.feature.reports.ReportViewModel
 import com.wfx.warungpos.feature.reports.ReportsScreen
 import com.wfx.warungpos.feature.reports.ReportsViewModel
 import com.wfx.warungpos.feature.settings.AboutScreen
@@ -228,6 +232,31 @@ fun AppNavGraph(
             val state by vm.uiState.collectAsStateWithLifecycle()
             DashboardScreen(
                 state = state,
+                onBack = { navController.popBackStack() },
+                onNavigateToFullReport = { navController.navigate(FullReportRoute) },
+            )
+        }
+
+        composable<FullReportRoute> {
+            val vm: ReportViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            ReportScreen(
+                state = state,
+                shareEvent = vm.shareEvent,
+                onSelectMode = vm::selectMode,
+                onSelectCustomRange = vm::selectCustomRange,
+                onShare = vm::share,
+                onNavigateToBestSellers = { navController.navigate(BestSellerRoute) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<BestSellerRoute> { backStackEntry ->
+            val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(FullReportRoute) }
+            val vm: ReportViewModel = hiltViewModel(parentEntry)
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            BestSellerScreen(
+                bestSellers = state.reportData?.bestSellers ?: emptyList(),
                 onBack = { navController.popBackStack() },
             )
         }
