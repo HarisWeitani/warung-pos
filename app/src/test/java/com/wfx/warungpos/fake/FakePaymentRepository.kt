@@ -1,5 +1,6 @@
 package com.wfx.warungpos.fake
 
+import com.wfx.warungpos.domain.model.Bill
 import com.wfx.warungpos.domain.model.Payment
 import com.wfx.warungpos.domain.model.PaymentBreakdown
 import com.wfx.warungpos.domain.model.PaymentMethod
@@ -7,7 +8,9 @@ import com.wfx.warungpos.domain.repository.PaymentRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
-class FakePaymentRepository : PaymentRepository {
+class FakePaymentRepository(
+    private val billRepository: FakeBillRepository? = null,
+) : PaymentRepository {
     val payments = mutableMapOf<String, Payment>()
     val methods = mutableMapOf<String, PaymentMethod>()
     var cashTotalForShift: Long = 0L
@@ -23,6 +26,11 @@ class FakePaymentRepository : PaymentRepository {
 
     override suspend fun recordPayment(payment: Payment) {
         payments[payment.id] = payment
+    }
+
+    override suspend fun processPaymentTransaction(payments: List<Payment>, updatedBill: Bill) {
+        payments.forEach { this.payments[it.id] = it }
+        billRepository?.bills?.put(updatedBill.id, updatedBill)
     }
 
     override suspend fun savePaymentMethod(method: PaymentMethod) {

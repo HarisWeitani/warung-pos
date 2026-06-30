@@ -41,22 +41,20 @@ class ProcessPaymentUseCase @Inject constructor(
 
         val now = DateUtil.nowEpochMs()
         val deviceId = sessionProvider.deviceId
-        for (row in rows) {
-            paymentRepository.recordPayment(
-                Payment(
-                    id = UuidGenerator.generate(),
-                    billId = billId,
-                    paymentMethodId = row.methodId,
-                    amount = row.amount,
-                    change = maxOf(0L, row.tenderedAmount - row.amount),
-                    paidAt = now,
-                    updatedAt = now,
-                    syncStatus = SyncStatus.PENDING,
-                    deviceId = deviceId,
-                )
+        val payments = rows.map { row ->
+            Payment(
+                id = UuidGenerator.generate(),
+                billId = billId,
+                paymentMethodId = row.methodId,
+                amount = row.amount,
+                change = maxOf(0L, row.tenderedAmount - row.amount),
+                paidAt = now,
+                updatedAt = now,
+                syncStatus = SyncStatus.PENDING,
+                deviceId = deviceId,
             )
         }
-        billRepository.saveBill(bill.copy(status = BillStatus.PAID, paidAt = now))
+        paymentRepository.processPaymentTransaction(payments, bill.copy(status = BillStatus.PAID, paidAt = now))
         return Result.success(Unit)
     }
 }

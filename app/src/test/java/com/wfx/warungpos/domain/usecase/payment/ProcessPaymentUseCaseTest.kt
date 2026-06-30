@@ -38,7 +38,7 @@ class ProcessPaymentUseCaseTest {
     @Before
     fun setup() {
         billRepository = FakeBillRepository()
-        paymentRepository = FakePaymentRepository()
+        paymentRepository = FakePaymentRepository(billRepository)
         shiftRepository = FakeShiftRepository()
         sessionProvider = FakeSessionProvider()
         useCase = ProcessPaymentUseCase(billRepository, paymentRepository, shiftRepository, sessionProvider)

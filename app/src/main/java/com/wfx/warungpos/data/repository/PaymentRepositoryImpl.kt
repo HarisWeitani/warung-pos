@@ -1,13 +1,17 @@
 package com.wfx.warungpos.data.repository
 
-import com.wfx.warungpos.core.common.SessionManager
+import androidx.room.withTransaction
+import com.wfx.warungpos.core.common.SessionProvider
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
+import com.wfx.warungpos.data.local.dao.BillDao
 import com.wfx.warungpos.data.local.dao.PaymentDao
 import com.wfx.warungpos.data.local.dao.PaymentMethodDao
+import com.wfx.warungpos.data.local.db.WarungDatabase
 import com.wfx.warungpos.data.local.mapper.toDomain
 import com.wfx.warungpos.data.local.mapper.toEntity
 import com.wfx.warungpos.data.remote.sync.SyncCoordinator
+import com.wfx.warungpos.domain.model.Bill
 import com.wfx.warungpos.domain.model.Payment
 import com.wfx.warungpos.domain.model.PaymentBreakdown
 import com.wfx.warungpos.domain.model.PaymentMethod
@@ -19,9 +23,11 @@ import javax.inject.Singleton
 
 @Singleton
 class PaymentRepositoryImpl @Inject constructor(
+    private val database: WarungDatabase,
     private val paymentDao: PaymentDao,
     private val paymentMethodDao: PaymentMethodDao,
-    private val sessionManager: SessionManager,
+    private val billDao: BillDao,
+    private val sessionProvider: SessionProvider,
     private val sync: SyncCoordinator,
 ) : PaymentRepository {
 
@@ -39,9 +45,31 @@ class PaymentRepositoryImpl @Inject constructor(
             payment.copy(
                 syncStatus = SyncStatus.PENDING,
                 updatedAt = DateUtil.nowEpochMs(),
-                deviceId = sessionManager.deviceId,
+                deviceId = sessionProvider.deviceId,
             ).toEntity()
         )
+        sync.notifyPendingSync()
+    }
+
+    override suspend fun processPaymentTransaction(payments: List<Payment>, updatedBill: Bill) {
+        database.withTransaction {
+            payments.forEach { payment ->
+                paymentDao.upsert(
+                    payment.copy(
+                        syncStatus = SyncStatus.PENDING,
+                        updatedAt = DateUtil.nowEpochMs(),
+                        deviceId = sessionProvider.deviceId,
+                    ).toEntity()
+                )
+            }
+            billDao.upsert(
+                updatedBill.copy(
+                    syncStatus = SyncStatus.PENDING,
+                    updatedAt = DateUtil.nowEpochMs(),
+                    deviceId = sessionProvider.deviceId,
+                ).toEntity()
+            )
+        }
         sync.notifyPendingSync()
     }
 
@@ -50,7 +78,7 @@ class PaymentRepositoryImpl @Inject constructor(
             method.copy(
                 syncStatus = SyncStatus.PENDING,
                 updatedAt = DateUtil.nowEpochMs(),
-                deviceId = sessionManager.deviceId,
+                deviceId = sessionProvider.deviceId,
             ).toEntity()
         )
         sync.notifyPendingSync()
