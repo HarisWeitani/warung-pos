@@ -53,6 +53,7 @@ fun MoreScreen(
     onNavigateToAbout: () -> Unit,
     onNavigateToShiftOpen: () -> Unit,
     onNavigateToShiftClose: () -> Unit,
+    onNavigateToShiftHistory: () -> Unit,
     onNavigateToExpenses: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -94,6 +95,7 @@ fun MoreScreen(
                 MoreSectionHeader("Shift")
                 MoreItem("Open Shift", Icons.Default.TableBar, onClick = onNavigateToShiftOpen)
                 MoreItem("Close Shift", Icons.Default.TableBar, onClick = onNavigateToShiftClose)
+                MoreItem("Shift History", Icons.Default.TableBar, onClick = onNavigateToShiftHistory)
                 HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             }
 

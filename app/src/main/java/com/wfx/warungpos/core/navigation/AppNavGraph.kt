@@ -43,6 +43,8 @@ import com.wfx.warungpos.feature.settings.TableSettingsScreen
 import com.wfx.warungpos.feature.settings.TableSettingsViewModel
 import com.wfx.warungpos.feature.shift.ShiftCloseScreen
 import com.wfx.warungpos.feature.shift.ShiftCloseViewModel
+import com.wfx.warungpos.feature.shift.ShiftHistoryScreen
+import com.wfx.warungpos.feature.shift.ShiftHistoryViewModel
 import com.wfx.warungpos.feature.shift.ShiftOpenScreen
 import com.wfx.warungpos.feature.shift.ShiftOpenViewModel
 import com.wfx.warungpos.feature.shift.ZReportScreen
@@ -189,11 +191,17 @@ fun AppNavGraph(
             val state by vm.uiState.collectAsStateWithLifecycle()
             ZReportScreen(
                 state = state,
-                onBack = {
-                    navController.navigate(OrderRoute) {
-                        popUpTo<OrderRoute> { inclusive = false }
-                    }
-                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<ShiftHistoryRoute> {
+            val vm: ShiftHistoryViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            ShiftHistoryScreen(
+                state = state,
+                onShiftClick = { shiftId -> navController.navigate(ZReportRoute(shiftId)) },
+                onBack = { navController.popBackStack() },
             )
         }
 
@@ -237,6 +245,7 @@ fun AppNavGraph(
                 onNavigateToAbout = { navController.navigate(AboutRoute) },
                 onNavigateToShiftOpen = { navController.navigate(ShiftOpenRoute) },
                 onNavigateToShiftClose = { navController.navigate(ShiftCloseRoute) },
+                onNavigateToShiftHistory = { navController.navigate(ShiftHistoryRoute) },
                 onNavigateToExpenses = { navController.navigate(ExpenseLogRoute) },
             )
         }

@@ -17,6 +17,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object ShiftOpenRoute
 @Serializable data object ShiftCloseRoute
 @Serializable data class ZReportRoute(val shiftId: String)
+@Serializable data object ShiftHistoryRoute
 
 // ── Bills & Order ─────────────────────────────────────────────────────────────
 @Serializable data class BillDetailRoute(val billId: String)
