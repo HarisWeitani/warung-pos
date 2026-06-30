@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -6,6 +8,20 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
+
+// Release keystore credentials are kept out of git in local.properties:
+//   RELEASE_STORE_FILE=/absolute/path/to/release.jks
+//   RELEASE_STORE_PASSWORD=...
+//   RELEASE_KEY_ALIAS=...
+//   RELEASE_KEY_PASSWORD=...
+// If any key is missing, the release build type falls back to unsigned (local dev only).
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val hasReleaseSigningConfig = listOf(
+    "RELEASE_STORE_FILE", "RELEASE_STORE_PASSWORD", "RELEASE_KEY_ALIAS", "RELEASE_KEY_PASSWORD",
+).all { localProperties.getProperty(it)?.isNotBlank() == true }
 
 android {
     namespace = "com.wfx.warungpos"
@@ -21,8 +37,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE"))
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            isDebuggable = false
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = true
             }
