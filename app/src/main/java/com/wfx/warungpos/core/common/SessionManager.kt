@@ -3,27 +3,25 @@ package com.wfx.warungpos.core.common
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.wfx.warungpos.core.util.UuidGenerator
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Local session for the single-stall app. There is no remote account: identity is a locally
+ * chosen username protected by a numeric PIN, both stored in EncryptedSharedPreferences. The
+ * app is single-user with full (OWNER) access. Firebase RTDB sync uses a separate anonymous
+ * sign-in handled by [com.wfx.warungpos.data.remote.firebase.FirebaseAuthDataSource].
+ */
 @Singleton
 class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val firebaseAuth: FirebaseAuth,
 ) : SessionProvider {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val prefs by lazy {
         val masterKey = MasterKey.Builder(context)
@@ -44,44 +42,58 @@ class SessionManager @Inject constructor(
         }
     }
 
-    private val _currentUser = MutableStateFlow<FirebaseUser?>(firebaseAuth.currentUser)
-    val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
+    private val _username = MutableStateFlow(prefs.getString(KEY_USERNAME, "").orEmpty())
+    val username: StateFlow<String> = _username.asStateFlow()
 
-    private val _userRole = MutableStateFlow(UserRole.NONE)
+    // Locked on every cold start; a valid PIN (or first-run registration) unlocks the UI.
+    private val _isUnlocked = MutableStateFlow(false)
+    val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
+
+    // Single-user app — always OWNER so every screen is accessible.
+    private val _userRole = MutableStateFlow(UserRole.OWNER)
     val userRole: StateFlow<UserRole> = _userRole.asStateFlow()
 
-    override val currentUserId: String? get() = _currentUser.value?.uid
-    override val currentUserRole: UserRole get() = _userRole.value
+    /** True once a username + PIN have been set up on this device. */
+    val isRegistered: Boolean
+        get() = prefs.contains(KEY_PIN_HASH) && _username.value.isNotBlank()
 
-    init {
-        // AuthStateListener runs on the main thread; role refresh is dispatched to Default
-        firebaseAuth.addAuthStateListener { auth ->
-            _currentUser.value = auth.currentUser
-            if (auth.currentUser == null) {
-                _userRole.value = UserRole.NONE
-            } else {
-                scope.launch { refreshRole() }
-            }
-        }
+    override val currentUserId: String?
+        get() = _username.value.ifBlank { null }
+
+    override val currentUserRole: UserRole
+        get() = _userRole.value
+
+    /** First-run setup: store the chosen username + PIN and unlock. */
+    fun register(username: String, pin: String) {
+        val trimmed = username.trim()
+        prefs.edit()
+            .putString(KEY_USERNAME, trimmed)
+            .putString(KEY_PIN_HASH, hash(pin))
+            .apply()
+        _username.value = trimmed
+        _isUnlocked.value = true
     }
 
-    suspend fun refreshRole() {
-        val user = firebaseAuth.currentUser ?: run {
-            _userRole.value = UserRole.NONE
-            return
-        }
-        runCatching { user.getIdToken(true).await() }
-            .onSuccess { result ->
-                _userRole.value = when (result.claims["role"] as? String) {
-                    "owner" -> UserRole.OWNER
-                    "staff" -> UserRole.STAFF
-                    else -> UserRole.NONE
-                }
-            }
-            // Token refresh failed; keep existing role — will retry on next call
+    /** Verify the entered PIN against the stored hash; unlocks on success. */
+    fun unlock(pin: String): Boolean {
+        val ok = prefs.getString(KEY_PIN_HASH, null) == hash(pin)
+        if (ok) _isUnlocked.value = true
+        return ok
     }
+
+    /** Re-lock the UI (returns to the PIN screen) without clearing the stored username/PIN. */
+    fun lock() {
+        _isUnlocked.value = false
+    }
+
+    private fun hash(pin: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(pin.toByteArray())
+            .joinToString("") { "%02x".format(it) }
 
     companion object {
         private const val KEY_DEVICE_ID = "device_id"
+        private const val KEY_USERNAME = "username"
+        private const val KEY_PIN_HASH = "pin_hash"
     }
 }

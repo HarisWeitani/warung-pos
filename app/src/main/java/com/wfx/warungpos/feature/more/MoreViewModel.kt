@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.UserRole
-import com.wfx.warungpos.data.remote.firebase.FirebaseAuthDataSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,24 +12,24 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 data class MoreUiState(
-    val email: String = "",
-    val userRole: UserRole = UserRole.NONE,
+    val username: String = "",
+    val userRole: UserRole = UserRole.OWNER,
 )
 
 @HiltViewModel
 class MoreViewModel @Inject constructor(
-    private val authDataSource: FirebaseAuthDataSource,
-    sessionManager: SessionManager,
+    private val sessionManager: SessionManager,
 ) : ViewModel() {
 
     val uiState: StateFlow<MoreUiState> = combine(
-        sessionManager.currentUser,
+        sessionManager.username,
         sessionManager.userRole,
-    ) { user, role ->
-        MoreUiState(email = user?.email ?: "", userRole = role)
+    ) { username, role ->
+        MoreUiState(username = username, userRole = role)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoreUiState())
 
-    fun signOut() {
-        authDataSource.signOut()
+    /** Re-locks the app back to the PIN screen. */
+    fun lock() {
+        sessionManager.lock()
     }
 }

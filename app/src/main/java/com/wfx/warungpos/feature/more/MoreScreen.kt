@@ -44,7 +44,7 @@ import com.wfx.warungpos.core.common.UserRole
 @Composable
 fun MoreScreen(
     state: MoreUiState,
-    onSignOut: () -> Unit,
+    onLock: () -> Unit,
     onNavigateToMenuManagement: () -> Unit,
     onNavigateToTableSettings: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
@@ -60,7 +60,7 @@ fun MoreScreen(
     onNavigateToOpname: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showSignOutDialog by remember { mutableStateOf(false) }
+    var showLockDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -74,7 +74,7 @@ fun MoreScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Text(
-                        text = state.email.ifBlank { "No user" },
+                        text = state.username.ifBlank { "No user" },
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Spacer(Modifier.height(4.dp))
@@ -132,7 +132,7 @@ fun MoreScreen(
             item {
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = { showSignOutDialog = true },
+                    onClick = { showLockDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
@@ -143,28 +143,28 @@ fun MoreScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
                     Spacer(Modifier.padding(start = 8.dp))
-                    Text("Sign Out")
+                    Text("Lock App")
                 }
                 Spacer(Modifier.height(32.dp))
             }
         }
     }
 
-    if (showSignOutDialog) {
+    if (showLockDialog) {
         AlertDialog(
-            onDismissRequest = { showSignOutDialog = false },
-            title = { Text("Sign Out") },
-            text = { Text("Are you sure you want to sign out?") },
+            onDismissRequest = { showLockDialog = false },
+            title = { Text("Lock App") },
+            text = { Text("Lock the app and return to the PIN screen?") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showSignOutDialog = false
-                        onSignOut()
+                        showLockDialog = false
+                        onLock()
                     },
-                ) { Text("Sign Out") }
+                ) { Text("Lock") }
             },
             dismissButton = {
-                TextButton(onClick = { showSignOutDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showLockDialog = false }) { Text("Cancel") }
             },
         )
     }

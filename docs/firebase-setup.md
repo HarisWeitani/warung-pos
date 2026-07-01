@@ -1,7 +1,9 @@
 # Firebase Setup
 
-One-time setup required before the app is usable. Do these in order — later steps depend on
-earlier ones.
+The app has **no user-facing login**. Access is protected by a local username + PIN chosen on
+first launch (stored encrypted on the device). Firebase is still used for cross-device Realtime
+Database sync; the app signs in **anonymously** behind the scenes so RTDB access passes the
+`auth != null` security rule. Do these steps in order.
 
 ## 1. Create the Firebase project and Android app
 
@@ -10,54 +12,21 @@ earlier ones.
 2. Add an Android app with package name `com.wfx.warungpos`.
 3. Download `google-services.json` and place it at `app/google-services.json` in this repo
    (gitignored — never commit it).
-4. Enable **Authentication → Sign-in method → Email/Password**.
-5. Enable **Realtime Database** (choose a region close to the store).
+4. Enable **Realtime Database** (choose a region close to the store).
 
-## 2. Create Auth accounts
+## 2. Enable Anonymous authentication
 
-In **Authentication → Users**, add one account per person who will use the app:
+**Authentication → Sign-in method → Anonymous → Enable.**
 
-1. Owner account — the store owner's email + a strong password.
-2. Staff account(s) — one per staff member's email + password.
+This is the only auth provider the app needs. On startup the app calls `signInAnonymously()` so
+that RTDB reads/writes are authenticated. There are no email/password accounts and no per-user
+roles — the app is single-user with full access, gated locally by the PIN.
 
-Note each user's **UID** (shown in the Users table) — you'll need it for the next step.
+If this provider is left disabled, the app still runs and works fully **offline/local** (Room is
+the source of truth), but writes stay `PENDING` and never sync to other devices, and the version
+gate check falls back to "allowed".
 
-## 3. Set role custom claims
-
-Roles (`owner` / `staff`) are read from a Firebase Auth **custom claim**, not stored in the
-database. The Android app reads `idTokenResult.claims["role"]` after sign-in
-(`SessionManager.refreshRole()`); a missing or unrecognized claim resolves to `UserRole.NONE`,
-which blocks access to owner-only screens (Reports, Dashboard, Menu Management, Shift Close,
-Settings) and shows "Guest" in More.
-
-Custom claims can only be set server-side. The simplest path is the Firebase Admin SDK via a
-short Node.js script run locally (you need a service account key — **Project Settings → Service
-Accounts → Generate new private key**):
-
-```js
-// set-role.js — run with: node set-role.js <uid> <owner|staff>
-const admin = require("firebase-admin");
-admin.initializeApp({ credential: admin.credential.cert(require("./serviceAccountKey.json")) });
-
-const [uid, role] = process.argv.slice(2);
-admin.auth().setCustomUserClaims(uid, { role }).then(() => {
-  console.log(`Set role=${role} for ${uid}`);
-  process.exit(0);
-});
-```
-
-Run it once per user:
-```bash
-node set-role.js <owner-uid> owner
-node set-role.js <staff-uid> staff
-```
-
-Claims are cached in the ID token and refresh roughly every hour, or immediately on next sign-in.
-**Verify on device:** sign in as the owner account → confirm Reports/Dashboard/Settings are
-visible and the More screen shows "Owner". Sign in as staff → confirm those routes redirect away
-and More shows "Staff".
-
-## 4. Seed `appConfig`
+## 3. Seed `appConfig`
 
 In **Realtime Database → Data**, manually add:
 ```
@@ -70,10 +39,11 @@ below this value, the user sees a non-dismissable "update required" screen). If 
 unreachable at startup, the gate is skipped so offline use isn't blocked. See the README's "How
 to release a new version" section for how to bump this value on future releases.
 
-## 5. Deploy RTDB security rules
+## 4. Deploy RTDB security rules
 
 The rules live in [`firebase/database.rules.json`](../firebase/database.rules.json) in this repo
 — that file is the source of truth; keep the deployed rules in sync with it on every change.
+Every path allows read/write to any authenticated (anonymous) user; there are no role checks.
 
 ```bash
 firebase login
@@ -84,26 +54,28 @@ firebase deploy --only database
 Or paste the file's contents directly into **Realtime Database → Rules** in the console and
 click Publish.
 
-**Verify the rules took effect:**
-- Unauthenticated REST read should be denied:
-  ```bash
-  curl "https://<project-id>-default-rtdb.<region>.firebasedatabase.app/bills.json"
-  # expect: {"error":"Permission denied"}
-  ```
-- In the Rules **Simulator** tab, test a write of `bills/{id}/status` from `"PAID"` to `"OPEN"`
-  authenticated as a non-owner — the app intentionally has no status-regression rule written into
-  `database.rules.json` itself (that protection currently lives client-side in `ConflictResolver`,
-  which rejects incoming remote writes that would regress a bill from PAID/VOID back to OPEN). If
-  you need server-side enforcement of this invariant too, extend the rules with a `.validate`
-  expression on `bills/$id/status`.
+**Verify the rules took effect:** an unauthenticated REST read should still be denied (the app
+authenticates anonymously; a raw `curl` is not authenticated):
+```bash
+curl "https://<project-id>-default-rtdb.<region>.firebasedatabase.app/bills.json"
+# expect: {"error":"Permission denied"}
+```
+The client-side `ConflictResolver` still guards against status regressions (a remote write can't
+move a bill from PAID/VOID back to OPEN). If you want that invariant enforced server-side too,
+add a `.validate` expression on `bills/$id/status`.
+
+## First launch on the device
+
+On first launch the app shows a **Set up your PIN** screen: enter a username and create a PIN
+(minimum 4 digits). That username is stamped on records this device creates (`createdBy`,
+`openedBy`, etc.) and shown in More. Subsequent launches show a PIN-only unlock screen. "Lock
+App" in More returns to the PIN screen without clearing the stored username/PIN.
 
 ## Summary checklist
 
 - [ ] `google-services.json` placed at `app/google-services.json`
-- [ ] Email/Password auth enabled
 - [ ] Realtime Database enabled
-- [ ] Owner + staff Auth accounts created
-- [ ] Custom claims (`role: owner` / `role: staff`) set for each account
+- [ ] Anonymous sign-in provider enabled
 - [ ] `appConfig/minVersionCode` seeded to `1`
 - [ ] `firebase/database.rules.json` deployed
-- [ ] Verified: owner sees Reports/Dashboard/Settings; staff does not
+- [ ] First launch: set username + PIN; relaunch prompts for PIN only

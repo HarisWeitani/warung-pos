@@ -40,8 +40,8 @@ import com.wfx.warungpos.core.navigation.MoreRoute
 import com.wfx.warungpos.core.navigation.OrderRoute
 import com.wfx.warungpos.core.navigation.ReportsRoute
 import com.wfx.warungpos.core.navigation.TablesRoute
-import com.wfx.warungpos.feature.auth.LoginScreen
-import com.wfx.warungpos.feature.auth.LoginViewModel
+import com.wfx.warungpos.feature.auth.PinScreen
+import com.wfx.warungpos.feature.auth.PinViewModel
 import com.wfx.warungpos.feature.auth.UpdateRequiredScreen
 import com.wfx.warungpos.feature.sync.SyncStatusBar
 import com.wfx.warungpos.ui.theme.WarungPosTheme
@@ -55,7 +55,7 @@ fun WarungPosApp(
 ) {
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     val versionGateState by viewModel.versionGateState.collectAsStateWithLifecycle()
-    val isAuthenticated by viewModel.isAuthenticated.collectAsStateWithLifecycle()
+    val isUnlocked by viewModel.isUnlocked.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
 
     // ContextThemeWrapper (not createConfigurationContext) preserves the ContextWrapper chain
@@ -84,14 +84,15 @@ fun WarungPosApp(
                         }
                     }
                     versionGateState is VersionGateState.UpdateRequired -> UpdateRequiredScreen()
-                    !isAuthenticated -> {
-                        val loginVm: LoginViewModel = hiltViewModel()
-                        val loginState by loginVm.uiState.collectAsStateWithLifecycle()
-                        LoginScreen(
-                            state = loginState,
-                            onEmailChange = loginVm::onEmailChange,
-                            onPasswordChange = loginVm::onPasswordChange,
-                            onSignIn = loginVm::signIn,
+                    !isUnlocked -> {
+                        val pinVm: PinViewModel = hiltViewModel()
+                        val pinState by pinVm.uiState.collectAsStateWithLifecycle()
+                        PinScreen(
+                            state = pinState,
+                            onUsernameChange = pinVm::onUsernameChange,
+                            onPinChange = pinVm::onPinChange,
+                            onConfirmPinChange = pinVm::onConfirmPinChange,
+                            onSubmit = pinVm::submit,
                         )
                     }
                     else -> MainApp(userRole = userRole)

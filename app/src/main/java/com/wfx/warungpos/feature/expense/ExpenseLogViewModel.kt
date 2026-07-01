@@ -99,7 +99,7 @@ class ExpenseLogViewModel @Inject constructor(
                     category = cat,
                     amount = amountLong,
                     note = _noteState.value.ifBlank { null },
-                    createdBy = sessionManager.currentUser.value?.uid ?: "",
+                    createdBy = sessionManager.currentUserId ?: "",
                     createdAt = now,
                     updatedAt = now,
                     syncStatus = SyncStatus.PENDING,

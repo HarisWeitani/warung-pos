@@ -7,35 +7,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.wfx.warungpos.R
 
 @Composable
-fun LoginScreen(
-    state: LoginViewModel.UiState,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onSignIn: () -> Unit,
+fun PinScreen(
+    state: PinViewModel.UiState,
+    onUsernameChange: (String) -> Unit,
+    onPinChange: (String) -> Unit,
+    onConfirmPinChange: (String) -> Unit,
+    onSubmit: () -> Unit,
 ) {
+    val isRegister = state.mode == PinViewModel.Mode.REGISTER
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -43,49 +38,58 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "Warung POS",
-            style = MaterialTheme.typography.headlineLarge,
-        )
-
+        Text(text = "Warung POS", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Point of Sale",
+            text = if (isRegister) "Set up your PIN" else "Hi, ${state.existingUsername}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(48.dp))
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = onEmailChange,
-            label = { Text(stringResource(R.string.auth_email)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading,
-        )
-
-        Spacer(Modifier.height(12.dp))
+        if (isRegister) {
+            OutlinedTextField(
+                value = state.username,
+                onValueChange = onUsernameChange,
+                label = { Text("Username") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+        }
 
         OutlinedTextField(
-            value = state.password,
-            onValueChange = onPasswordChange,
-            label = { Text(stringResource(R.string.auth_password)) },
+            value = state.pin,
+            onValueChange = onPinChange,
+            label = { Text("PIN") },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = if (isRegister) ImeAction.Next else ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { onSignIn() }),
+            keyboardActions = KeyboardActions(onDone = { if (!isRegister) onSubmit() }),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading,
         )
+
+        if (isRegister) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.confirmPin,
+                onValueChange = onConfirmPinChange,
+                label = { Text("Confirm PIN") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         if (state.error != null) {
             Spacer(Modifier.height(8.dp))
@@ -98,20 +102,8 @@ fun LoginScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = onSignIn,
-            enabled = !state.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(stringResource(R.string.auth_login))
-            }
+        Button(onClick = onSubmit, modifier = Modifier.fillMaxWidth()) {
+            Text(if (isRegister) "Create PIN" else "Unlock")
         }
     }
 }

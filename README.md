@@ -7,7 +7,7 @@ Jetpack Compose, Room, Hilt, and Firebase Realtime Database for cross-device syn
 
 - Android Studio (latest stable) with Android SDK 37 installed
 - JDK 17 (bundled with recent Android Studio)
-- A Firebase project with Realtime Database and Authentication (Email/Password) enabled
+- A Firebase project with Realtime Database enabled and Anonymous authentication turned on
 - [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) — only
   needed to deploy `firebase/database.rules.json`
 - A physical device or emulator running API 26+ (minSdk 26)
@@ -26,8 +26,9 @@ Jetpack Compose, Room, Hilt, and Firebase Realtime Database for cross-device syn
 4. Open the project in Android Studio and let Gradle sync. The first sync downloads AGP 9.2.1,
    Kotlin 2.2.10, and KSP 2.2.10-2.0.2 — verify your Android Studio version supports these.
 5. Complete the one-time Firebase setup in [`docs/firebase-setup.md`](docs/firebase-setup.md)
-   (Auth accounts, custom claims, seeding `appConfig`, deploying RTDB rules) before first run —
-   the app will not let any user past the login screen without a valid Auth account + role claim.
+   (enable Anonymous auth, seed `appConfig`, deploy RTDB rules) before first run. There is no
+   login — on first launch the app prompts for a username and a local PIN; after that a PIN
+   unlocks it. The app works fully offline; Firebase is only used to sync data across devices.
 
 ## Building
 
@@ -99,29 +100,41 @@ pushes pending rows to RTDB. `RtdbListener` listens for remote changes and appli
 via `ConflictResolver` (last-write-wins by `updatedAt`, with status-regression guards — e.g. a
 remote "OPEN" can never overwrite a local "PAID" bill).
 
+## Authentication & access
+
+There are no remote user accounts. On first launch the user picks a **username** and sets a
+local **PIN** (SHA-256 hashed, stored in `EncryptedSharedPreferences` via `SessionManager`).
+The PIN gates the whole app on every cold start; "Lock App" in More returns to the PIN screen.
+The username is stamped on records this device creates (`createdBy`/`openedBy`/etc.). The app is
+single-user with full (OWNER) access — there is no owner/staff distinction.
+
+For RTDB sync the app signs in **anonymously** (`FirebaseAuthDataSource.ensureSignedIn()`), which
+keeps the security rules' `auth != null` check satisfied without any login UI. Enable the
+Anonymous provider in the Firebase console (see [`docs/firebase-setup.md`](docs/firebase-setup.md)).
+
 ## RTDB path structure
 
-These paths (and their owner/staff write permissions) are defined in
-[`firebase/database.rules.json`](firebase/database.rules.json) and mirrored in
-`RtdbPaths.kt`:
+These paths are defined in [`firebase/database.rules.json`](firebase/database.rules.json) and
+mirrored in `RtdbPaths.kt`. Every path is readable/writable by any authenticated (anonymous)
+user — no role checks:
 
 | Path | Read | Write |
 |---|---|---|
 | `appConfig` | any authenticated user | server-only (no client writes) |
-| `menuCategories/{id}` | any authenticated user | owner or staff |
-| `menuItems/{id}` | any authenticated user | owner or staff |
-| `variantGroups/{id}` | any authenticated user | owner or staff |
-| `variantOptions/{id}` | any authenticated user | owner or staff |
-| `tables/{id}` | any authenticated user | owner only |
-| `paymentMethods/{id}` | any authenticated user | owner only |
-| `shifts/{id}` | any authenticated user | owner or staff |
-| `bills/{id}` | any authenticated user | owner or staff |
-| `orderItems/{id}` | any authenticated user | owner or staff |
-| `payments/{id}` | any authenticated user | owner or staff |
-| `expenses/{id}` | any authenticated user | owner or staff |
-| `stockItems/{id}` | any authenticated user | owner only |
-| `stockBatches/{id}` | any authenticated user | owner only |
-| `opnames/{id}` | any authenticated user | owner only |
+| `menuCategories/{id}` | any authenticated user | any authenticated user |
+| `menuItems/{id}` | any authenticated user | any authenticated user |
+| `variantGroups/{id}` | any authenticated user | any authenticated user |
+| `variantOptions/{id}` | any authenticated user | any authenticated user |
+| `tables/{id}` | any authenticated user | any authenticated user |
+| `paymentMethods/{id}` | any authenticated user | any authenticated user |
+| `shifts/{id}` | any authenticated user | any authenticated user |
+| `bills/{id}` | any authenticated user | any authenticated user |
+| `orderItems/{id}` | any authenticated user | any authenticated user |
+| `payments/{id}` | any authenticated user | any authenticated user |
+| `expenses/{id}` | any authenticated user | any authenticated user |
+| `stockItems/{id}` | any authenticated user | any authenticated user |
+| `stockBatches/{id}` | any authenticated user | any authenticated user |
+| `opnames/{id}` | any authenticated user | any authenticated user |
 
 `appConfig/minVersionCode` (a single integer) drives the version gate — see "How to release a new
 version" above.

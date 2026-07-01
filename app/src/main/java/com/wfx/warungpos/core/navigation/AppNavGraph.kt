@@ -211,20 +211,12 @@ fun AppNavGraph(
         }
 
         composable<ReportsRoute> {
-            if (userRole == UserRole.STAFF) {
-                LaunchedEffect(Unit) {
-                    navController.navigate(OrderRoute) {
-                        popUpTo<OrderRoute> { inclusive = false }
-                    }
-                }
-            } else {
-                val vm: ReportsViewModel = hiltViewModel()
-                val state by vm.uiState.collectAsStateWithLifecycle()
-                ReportsScreen(
-                    state = state,
-                    onNavigateToDashboard = { navController.navigate(DashboardRoute) },
-                )
-            }
+            val vm: ReportsViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            ReportsScreen(
+                state = state,
+                onNavigateToDashboard = { navController.navigate(DashboardRoute) },
+            )
         }
 
         composable<DashboardRoute> {
@@ -266,7 +258,7 @@ fun AppNavGraph(
             val state by vm.uiState.collectAsStateWithLifecycle()
             MoreScreen(
                 state = state,
-                onSignOut = vm::signOut,
+                onLock = vm::lock,
                 onNavigateToMenuManagement = { navController.navigate(MenuManagementRoute) },
                 onNavigateToTableSettings = { navController.navigate(TableSettingsRoute) },
                 onNavigateToPaymentMethods = { navController.navigate(PaymentMethodSettingsRoute) },

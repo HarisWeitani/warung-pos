@@ -10,100 +10,72 @@
 
     "menuCategories": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "menuItems": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "variantGroups": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "variantOptions": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "tables": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && auth.token.role === 'owner'"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "paymentMethods": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && auth.token.role === 'owner'"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "shifts": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "bills": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "orderItems": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "payments": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "expenses": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && (auth.token.role === 'owner' || auth.token.role === 'staff')"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "stockItems": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && auth.token.role === 'owner'"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "stockBatches": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && auth.token.role === 'owner'"
-      }
+      "$id": { ".write": "auth != null" }
     },
 
     "opnames": {
       ".read": "auth != null",
-      "$id": {
-        ".write": "auth != null && auth.token.role === 'owner'"
-      }
+      "$id": { ".write": "auth != null" }
     }
   }
 }
