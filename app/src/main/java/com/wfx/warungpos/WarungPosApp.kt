@@ -3,16 +3,13 @@ package com.wfx.warungpos
 import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -77,12 +73,11 @@ fun WarungPosApp(
         ) {
             Column {
                 SyncStatusBar()
+                // The version-gate RTDB check runs in the background; we don't block the UI on it.
+                // The PIN screen shows immediately (VersionGateState starts Loading, which is not
+                // UpdateRequired). If the check later resolves to UpdateRequired, the update screen
+                // takes over.
                 when {
-                    versionGateState is VersionGateState.Loading -> {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
                     versionGateState is VersionGateState.UpdateRequired -> UpdateRequiredScreen()
                     !isUnlocked -> {
                         val pinVm: PinViewModel = hiltViewModel()
