@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.TableBar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,7 +108,7 @@ fun MoreScreen(
 
             item {
                 MoreSectionHeader("Stock")
-                MoreItem("Stock", Icons.Default.Restaurant, onClick = onNavigateToStock)
+                MoreItem("Stock", Icons.Default.Restaurant, onClick = onNavigateToStock, badgeCount = state.lowStockCount)
                 MoreItem("Stock Batches", Icons.Default.Restaurant, onClick = onNavigateToStockBatch)
                 MoreItem("Stock Opname", Icons.Default.Restaurant, onClick = onNavigateToOpname)
                 HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
@@ -177,7 +179,7 @@ private fun MoreSectionHeader(title: String) {
 }
 
 @Composable
-private fun MoreItem(title: String, icon: ImageVector, onClick: () -> Unit) {
+private fun MoreItem(title: String, icon: ImageVector, onClick: () -> Unit, badgeCount: Int = 0) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -187,7 +189,13 @@ private fun MoreItem(title: String, icon: ImageVector, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            if (badgeCount > 0) {
+                Spacer(Modifier.width(8.dp))
+                Badge { Text(badgeCount.toString()) }
+            }
+        }
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,

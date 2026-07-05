@@ -1,10 +1,12 @@
 package com.wfx.warungpos.data.repository
 
+import androidx.room.withTransaction
 import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.data.local.dao.StockDao
 import com.wfx.warungpos.data.local.dao.StockOpnameDao
+import com.wfx.warungpos.data.local.db.WarungDatabase
 import com.wfx.warungpos.data.local.mapper.toDomain
 import com.wfx.warungpos.data.local.mapper.toEntity
 import com.wfx.warungpos.data.remote.sync.SyncCoordinator
@@ -21,6 +23,7 @@ import javax.inject.Singleton
 
 @Singleton
 class StockRepositoryImpl @Inject constructor(
+    private val database: WarungDatabase,
     private val stockDao: StockDao,
     private val opnameDao: StockOpnameDao,
     private val sessionManager: SessionManager,
@@ -123,6 +126,20 @@ class StockRepositoryImpl @Inject constructor(
         opnameDao.upsertLines(
             lines.map { it.copy(syncStatus = SyncStatus.PENDING, updatedAt = now, deviceId = deviceId).toEntity() }
         )
+        sync.notifyPendingSync()
+    }
+
+    override suspend fun startOpname(opname: StockOpname, lines: List<StockOpnameLine>) {
+        val now = DateUtil.nowEpochMs()
+        val deviceId = sessionManager.deviceId
+        database.withTransaction {
+            opnameDao.upsertOpname(
+                opname.copy(syncStatus = SyncStatus.PENDING, updatedAt = now, deviceId = deviceId).toEntity()
+            )
+            opnameDao.upsertLines(
+                lines.map { it.copy(syncStatus = SyncStatus.PENDING, updatedAt = now, deviceId = deviceId).toEntity() }
+            )
+        }
         sync.notifyPendingSync()
     }
 

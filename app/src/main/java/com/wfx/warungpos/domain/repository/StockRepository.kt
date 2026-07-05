@@ -30,6 +30,11 @@ interface StockRepository {
     suspend fun saveLine(line: StockOpnameLine)
     suspend fun saveLines(lines: List<StockOpnameLine>)
 
+    /** Saves the opname and its snapshot lines in one transaction: the opname row must exist
+     * before the lines (FK), and both must be visible to observers atomically so the UI never
+     * reads the new opname before its lines are there. */
+    suspend fun startOpname(opname: StockOpname, lines: List<StockOpnameLine>)
+
     /** Directly sets currentQty without going through a batch or opname (used by opname submit). */
     suspend fun setCurrentQty(stockItemId: String, qty: Double)
 

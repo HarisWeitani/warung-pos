@@ -74,6 +74,11 @@ class FakeStockRepository : StockRepository {
         lines.forEach { this.lines[it.id] = it }
     }
 
+    override suspend fun startOpname(opname: StockOpname, lines: List<StockOpnameLine>) {
+        opnames[opname.id] = opname
+        lines.forEach { this.lines[it.id] = it }
+    }
+
     override suspend fun setCurrentQty(stockItemId: String, qty: Double) {
         items[stockItemId]?.let { items[stockItemId] = it.copy(currentQty = qty) }
     }

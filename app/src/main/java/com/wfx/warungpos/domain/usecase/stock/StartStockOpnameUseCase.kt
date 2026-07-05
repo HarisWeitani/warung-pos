@@ -35,8 +35,6 @@ class StartStockOpnameUseCase @Inject constructor(
             syncStatus = SyncStatus.PENDING,
             deviceId = deviceId,
         )
-        stockRepository.saveOpname(opname)
-
         val lines = stockRepository.getAllItemsOnce().map { item ->
             StockOpnameLine(
                 id = UuidGenerator.generate(),
@@ -51,7 +49,10 @@ class StartStockOpnameUseCase @Inject constructor(
                 deviceId = deviceId,
             )
         }
-        stockRepository.saveLines(lines)
+        // Saved together in one transaction: the opname row must exist before the lines (FK),
+        // and observeInProgressOpname() must not be able to emit the new opname to the UI before
+        // its lines are already there — a single transaction makes both true atomically.
+        stockRepository.startOpname(opname, lines)
 
         return Result.success(opname.id)
     }
