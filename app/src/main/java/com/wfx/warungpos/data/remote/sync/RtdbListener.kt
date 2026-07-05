@@ -1,17 +1,22 @@
 package com.wfx.warungpos.data.remote.sync
 
+import android.database.sqlite.SQLiteConstraintException
 import com.wfx.warungpos.data.local.db.WarungDatabase
 import com.wfx.warungpos.data.remote.firebase.ChildEvent
 import com.wfx.warungpos.data.remote.firebase.FirebaseRtdbDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val MAX_FK_RETRIES = 6
+private const val FK_RETRY_BASE_DELAY_MS = 150L
 
 @Singleton
 class RtdbListener @Inject constructor(
@@ -230,8 +235,32 @@ class RtdbListener @Inject constructor(
 
     private fun listenPath(path: String, handler: suspend (ChildEvent) -> Unit) {
         rtdb.observeChildren(path)
-            .onEach { event -> scope.launch { handler(event) } }
+            .onEach { event -> scope.launch { applyResiliently(event, handler) } }
             .catch { /* log in production — silently ignored during Phase 2 */ }
             .launchIn(scope)
+    }
+
+    /**
+     * Applies one remote change, tolerating out-of-order arrival across the independent per-path
+     * listeners. A child (e.g. a bill) can be delivered before its parent (its shift/table) has
+     * been synced by that parent's own listener, which fails the Room FOREIGN KEY check. Rather
+     * than crash the sync thread, we retry a few times with a short backoff — by then the parent
+     * has almost always been inserted. If it genuinely never arrives (a true orphan), we give up
+     * quietly instead of taking down the app. Any other exception is swallowed for the same reason.
+     */
+    private suspend fun applyResiliently(event: ChildEvent, handler: suspend (ChildEvent) -> Unit) {
+        var attempt = 0
+        while (true) {
+            try {
+                handler(event)
+                return
+            } catch (e: SQLiteConstraintException) {
+                attempt++
+                if (attempt >= MAX_FK_RETRIES) return
+                delay(FK_RETRY_BASE_DELAY_MS * attempt)
+            } catch (e: Exception) {
+                return
+            }
+        }
     }
 }
