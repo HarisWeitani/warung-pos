@@ -12,5 +12,8 @@ internal object RtdbPaths {
     const val PAYMENTS = "payments"
     const val EXPENSES = "expenses"
     const val STOCK_ITEMS = "stockItems"
+    const val STOCK_BATCHES = "stockBatches"
+    const val MENU_ITEM_INGREDIENTS = "menuItemIngredients"
+    const val STOCK_OPNAME_LINES = "stockOpnameLines"
     const val OPNAMES = "opnames"
 }

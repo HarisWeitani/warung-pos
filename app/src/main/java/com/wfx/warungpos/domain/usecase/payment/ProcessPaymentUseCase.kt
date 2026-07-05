@@ -13,6 +13,7 @@ import com.wfx.warungpos.domain.model.Payment
 import com.wfx.warungpos.domain.repository.BillRepository
 import com.wfx.warungpos.domain.repository.PaymentRepository
 import com.wfx.warungpos.domain.repository.ShiftRepository
+import com.wfx.warungpos.domain.usecase.stock.DeductStockForBillUseCase
 import javax.inject.Inject
 
 class ProcessPaymentUseCase @Inject constructor(
@@ -20,6 +21,7 @@ class ProcessPaymentUseCase @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val shiftRepository: ShiftRepository,
     private val sessionProvider: SessionProvider,
+    private val deductStockForBillUseCase: DeductStockForBillUseCase,
 ) {
     suspend operator fun invoke(billId: String, rows: List<PaymentRow>): Result<Unit> {
         shiftRepository.getOpenShift() ?: return Result.failure(ShiftNotOpenException())
@@ -55,6 +57,7 @@ class ProcessPaymentUseCase @Inject constructor(
             )
         }
         paymentRepository.processPaymentTransaction(payments, bill.copy(status = BillStatus.PAID, paidAt = now))
+        deductStockForBillUseCase(billId)
         return Result.success(Unit)
     }
 }

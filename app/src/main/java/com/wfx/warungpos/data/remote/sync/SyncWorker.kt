@@ -54,6 +54,18 @@ class SyncWorker @AssistedInject constructor(
         db.stockDao().getPendingItems().forEach { entity ->
             updates["/${RtdbPaths.STOCK_ITEMS}/${entity.id}"] = entity.toRtdbMap()
         }
+        db.stockDao().getPendingBatches().forEach { entity ->
+            updates["/${RtdbPaths.STOCK_BATCHES}/${entity.id}"] = entity.toRtdbMap()
+        }
+        db.stockDao().getPendingIngredients().forEach { entity ->
+            updates["/${RtdbPaths.MENU_ITEM_INGREDIENTS}/${entity.rtdbKey}"] = entity.toRtdbMap()
+        }
+        db.stockOpnameDao().getPendingOpnames().forEach { entity ->
+            updates["/${RtdbPaths.OPNAMES}/${entity.id}"] = entity.toRtdbMap()
+        }
+        db.stockOpnameDao().getPendingLines().forEach { entity ->
+            updates["/${RtdbPaths.STOCK_OPNAME_LINES}/${entity.id}"] = entity.toRtdbMap()
+        }
 
         if (updates.isNotEmpty()) {
             rtdb.writeMulti(updates)
@@ -91,6 +103,21 @@ class SyncWorker @AssistedInject constructor(
         }
         db.expenseDao().getPendingSync().forEach { e ->
             db.expenseDao().upsert(e.copy(syncStatus = synced))
+        }
+        db.stockDao().getPendingItems().forEach { e ->
+            db.stockDao().upsertItem(e.copy(syncStatus = synced))
+        }
+        db.stockDao().getPendingBatches().forEach { e ->
+            db.stockDao().upsertBatch(e.copy(syncStatus = synced))
+        }
+        db.stockDao().getPendingIngredients().forEach { e ->
+            db.stockDao().upsertIngredient(e.copy(syncStatus = synced))
+        }
+        db.stockOpnameDao().getPendingOpnames().forEach { e ->
+            db.stockOpnameDao().upsertOpname(e.copy(syncStatus = synced))
+        }
+        db.stockOpnameDao().getPendingLines().forEach { e ->
+            db.stockOpnameDao().upsertLine(e.copy(syncStatus = synced))
         }
     }
 }

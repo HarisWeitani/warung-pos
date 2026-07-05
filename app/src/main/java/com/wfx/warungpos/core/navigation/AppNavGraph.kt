@@ -49,7 +49,12 @@ import com.wfx.warungpos.feature.shift.ShiftHistoryScreen
 import com.wfx.warungpos.feature.shift.ShiftHistoryViewModel
 import com.wfx.warungpos.feature.shift.ZReportScreen
 import com.wfx.warungpos.feature.shift.ZReportViewModel
-import com.wfx.warungpos.feature.stock.ComingSoonScreen
+import com.wfx.warungpos.feature.stock.StockBatchScreen
+import com.wfx.warungpos.feature.stock.StockBatchViewModel
+import com.wfx.warungpos.feature.stock.StockOpnameScreen
+import com.wfx.warungpos.feature.stock.StockOpnameViewModel
+import com.wfx.warungpos.feature.stock.StockScreen
+import com.wfx.warungpos.feature.stock.StockViewModel
 
 @Composable
 fun AppNavGraph(
@@ -276,6 +281,9 @@ fun AppNavGraph(
                 onAddOption = vm::addOption,
                 onUpdateOption = vm::updateOption,
                 onDeleteOption = vm::deleteOption,
+                onAddIngredient = vm::addIngredient,
+                onUpdateIngredient = vm::updateIngredient,
+                onDeleteIngredient = vm::deleteIngredient,
                 onBack = { navController.popBackStack() },
             )
         }
@@ -319,15 +327,47 @@ fun AppNavGraph(
         }
 
         composable<StockRoute> {
-            ComingSoonScreen(title = "Stock", onBack = { navController.popBackStack() })
+            val vm: StockViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            StockScreen(
+                state = state,
+                onAddItem = vm::showAddSheet,
+                onItemClick = vm::showEditSheet,
+                onDismissSheet = vm::dismissSheet,
+                onNameChange = vm::onNameChange,
+                onUnitChange = vm::onUnitChange,
+                onReorderPointChange = vm::onReorderPointChange,
+                onSave = vm::save,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<StockBatchRoute> {
-            ComingSoonScreen(title = "Stock Batches", onBack = { navController.popBackStack() })
+            val vm: StockBatchViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            StockBatchScreen(
+                state = state,
+                onAddBatch = vm::showAddSheet,
+                onDismissSheet = vm::dismissSheet,
+                onStockItemChange = vm::onStockItemChange,
+                onQtyChange = vm::onQtyChange,
+                onCostChange = vm::onCostChange,
+                onSave = vm::save,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable<OpnameRoute> {
-            ComingSoonScreen(title = "Stock Opname", onBack = { navController.popBackStack() })
+            val vm: StockOpnameViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            StockOpnameScreen(
+                state = state,
+                onStart = vm::startOpname,
+                onCountedQtyChange = vm::onCountedQtyChange,
+                onReasonChange = vm::onReasonChange,
+                onSubmit = vm::submit,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }

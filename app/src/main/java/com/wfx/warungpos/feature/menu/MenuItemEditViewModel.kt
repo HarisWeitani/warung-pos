@@ -12,9 +12,12 @@ import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
 import com.wfx.warungpos.domain.model.MenuCategory
 import com.wfx.warungpos.domain.model.MenuItem
+import com.wfx.warungpos.domain.model.MenuItemIngredient
+import com.wfx.warungpos.domain.model.StockItem
 import com.wfx.warungpos.domain.model.VariantGroup
 import com.wfx.warungpos.domain.model.VariantOption
 import com.wfx.warungpos.domain.repository.MenuRepository
+import com.wfx.warungpos.domain.repository.StockRepository
 import com.wfx.warungpos.domain.usecase.menu.UpsertMenuItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +42,8 @@ data class MenuItemEditUiState(
     val isSoldOut: Boolean = false,
     val categories: List<MenuCategory> = emptyList(),
     val variantGroups: List<VariantGroupUi> = emptyList(),
+    val stockItems: List<StockItem> = emptyList(),
+    val ingredients: List<MenuItemIngredient> = emptyList(),
     val isSaving: Boolean = false,
     val error: String? = null,
     val isSaved: Boolean = false,
@@ -48,6 +53,7 @@ data class MenuItemEditUiState(
 class MenuItemEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val menuRepository: MenuRepository,
+    private val stockRepository: StockRepository,
     private val upsertMenuItemUseCase: UpsertMenuItemUseCase,
     private val sessionManager: SessionManager,
 ) : ViewModel() {
@@ -60,7 +66,8 @@ class MenuItemEditViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val categories = menuRepository.observeCategories().first()
-            _uiState.update { it.copy(categories = categories) }
+            val stockItems = stockRepository.observeAllItems().first()
+            _uiState.update { it.copy(categories = categories, stockItems = stockItems) }
             if (initialItemId != null) {
                 menuRepository.getMenuItem(initialItemId)?.let { item ->
                     _uiState.update {
@@ -74,6 +81,7 @@ class MenuItemEditViewModel @Inject constructor(
                     }
                 }
                 loadVariantGroups()
+                loadIngredients()
             }
         }
     }
@@ -83,6 +91,52 @@ class MenuItemEditViewModel @Inject constructor(
         val groups = menuRepository.observeVariantGroups(id).first()
         val groupUis = groups.map { g -> VariantGroupUi(g, menuRepository.observeVariantOptions(g.id).first()) }
         _uiState.update { it.copy(variantGroups = groupUis) }
+    }
+
+    private suspend fun loadIngredients() {
+        val id = _uiState.value.itemId ?: return
+        val ingredients = stockRepository.getIngredientsForMenuItem(id)
+        _uiState.update { it.copy(ingredients = ingredients) }
+    }
+
+    fun addIngredient() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val itemId = state.itemId ?: return@launch
+            val stockItem = state.stockItems.firstOrNull { candidate ->
+                state.ingredients.none { it.stockItemId == candidate.id }
+            } ?: return@launch
+            stockRepository.saveIngredient(
+                MenuItemIngredient(
+                    menuItemId = itemId,
+                    stockItemId = stockItem.id,
+                    qtyPerServing = 0.0,
+                    updatedAt = DateUtil.nowEpochMs(),
+                    syncStatus = SyncStatus.PENDING,
+                    deviceId = sessionManager.deviceId,
+                )
+            )
+            loadIngredients()
+        }
+    }
+
+    fun updateIngredient(oldStockItemId: String, updated: MenuItemIngredient) {
+        viewModelScope.launch {
+            val itemId = _uiState.value.itemId ?: return@launch
+            if (updated.stockItemId != oldStockItemId) {
+                stockRepository.deleteIngredient(itemId, oldStockItemId)
+            }
+            stockRepository.saveIngredient(updated.copy(updatedAt = DateUtil.nowEpochMs()))
+            loadIngredients()
+        }
+    }
+
+    fun deleteIngredient(stockItemId: String) {
+        viewModelScope.launch {
+            val itemId = _uiState.value.itemId ?: return@launch
+            stockRepository.deleteIngredient(itemId, stockItemId)
+            loadIngredients()
+        }
     }
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value, error = null) }

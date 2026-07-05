@@ -214,6 +214,75 @@ class RtdbListener @Inject constructor(
                 is ChildEvent.Removed -> Unit
             }
         }
+
+        listenPath(RtdbPaths.STOCK_BATCHES) { event ->
+            when (event) {
+                is ChildEvent.Added, is ChildEvent.Changed -> {
+                    val incoming = event.snapshot.toStockBatchEntity() ?: return@listenPath
+                    val resolution = conflictResolver.resolve(
+                        incomingUpdatedAt = incoming.updatedAt,
+                        existingUpdatedAt = null,
+                    )
+                    if (resolution == ConflictResolution.ACCEPT) {
+                        db.stockDao().upsertBatch(incoming)
+                    }
+                }
+                is ChildEvent.Removed -> Unit
+            }
+        }
+
+        listenPath(RtdbPaths.MENU_ITEM_INGREDIENTS) { event ->
+            when (event) {
+                is ChildEvent.Added, is ChildEvent.Changed -> {
+                    val incoming = event.snapshot.toMenuItemIngredientEntity() ?: return@listenPath
+                    val resolution = conflictResolver.resolve(
+                        incomingUpdatedAt = incoming.updatedAt,
+                        existingUpdatedAt = null,
+                    )
+                    if (resolution == ConflictResolution.ACCEPT) {
+                        db.stockDao().upsertIngredient(incoming)
+                    }
+                }
+                is ChildEvent.Removed -> {
+                    val (menuItemId, stockItemId) = event.snapshot.key
+                        ?.split("_", limit = 2)?.takeIf { it.size == 2 } ?: return@listenPath
+                    db.stockDao().deleteIngredient(menuItemId, stockItemId)
+                }
+            }
+        }
+
+        listenPath(RtdbPaths.OPNAMES) { event ->
+            when (event) {
+                is ChildEvent.Added, is ChildEvent.Changed -> {
+                    val incoming = event.snapshot.toStockOpnameEntity() ?: return@listenPath
+                    val existing = db.stockOpnameDao().getById(incoming.id)
+                    val resolution = conflictResolver.resolve(
+                        incomingUpdatedAt = incoming.updatedAt,
+                        existingUpdatedAt = existing?.updatedAt,
+                    )
+                    if (resolution == ConflictResolution.ACCEPT) {
+                        db.stockOpnameDao().upsertOpname(incoming)
+                    }
+                }
+                is ChildEvent.Removed -> Unit
+            }
+        }
+
+        listenPath(RtdbPaths.STOCK_OPNAME_LINES) { event ->
+            when (event) {
+                is ChildEvent.Added, is ChildEvent.Changed -> {
+                    val incoming = event.snapshot.toStockOpnameLineEntity() ?: return@listenPath
+                    val resolution = conflictResolver.resolve(
+                        incomingUpdatedAt = incoming.updatedAt,
+                        existingUpdatedAt = null,
+                    )
+                    if (resolution == ConflictResolution.ACCEPT) {
+                        db.stockOpnameDao().upsertLine(incoming)
+                    }
+                }
+                is ChildEvent.Removed -> Unit
+            }
+        }
     }
 
     private fun listenPath(path: String, handler: suspend (ChildEvent) -> Unit) {

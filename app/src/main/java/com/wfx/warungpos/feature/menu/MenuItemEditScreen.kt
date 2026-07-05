@@ -31,6 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.wfx.warungpos.domain.model.MenuItemIngredient
+import com.wfx.warungpos.feature.menu.component.IngredientEditor
 import com.wfx.warungpos.feature.menu.component.VariantGroupEditor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +49,9 @@ fun MenuItemEditScreen(
     onAddOption: (String) -> Unit,
     onUpdateOption: (com.wfx.warungpos.domain.model.VariantOption) -> Unit,
     onDeleteOption: (String) -> Unit,
+    onAddIngredient: () -> Unit,
+    onUpdateIngredient: (oldStockItemId: String, MenuItemIngredient) -> Unit,
+    onDeleteIngredient: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -158,6 +163,41 @@ fun MenuItemEditScreen(
                     TextButton(onClick = onAddVariantGroup) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Text("Add Variant Group")
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Ingredients",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                items(state.ingredients, key = { it.stockItemId }) { ingredient ->
+                    IngredientEditor(
+                        ingredient = ingredient,
+                        stockItems = state.stockItems,
+                        onUpdate = onUpdateIngredient,
+                        onDelete = { onDeleteIngredient(ingredient.stockItemId) },
+                    )
+                }
+
+                val hasUnusedStockItem = state.stockItems.any { candidate ->
+                    state.ingredients.none { it.stockItemId == candidate.id }
+                }
+                item {
+                    if (state.stockItems.isEmpty()) {
+                        Text(
+                            text = "Add stock items first to configure a recipe for this item.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        TextButton(onClick = onAddIngredient, enabled = hasUnusedStockItem) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Text("Add Ingredient")
+                        }
                     }
                 }
             }

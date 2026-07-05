@@ -6,11 +6,15 @@ import com.wfx.warungpos.data.local.entity.BillEntity
 import com.wfx.warungpos.data.local.entity.ExpenseEntity
 import com.wfx.warungpos.data.local.entity.MenuCategoryEntity
 import com.wfx.warungpos.data.local.entity.MenuItemEntity
+import com.wfx.warungpos.data.local.entity.MenuItemIngredientEntity
 import com.wfx.warungpos.data.local.entity.OrderItemEntity
 import com.wfx.warungpos.data.local.entity.PaymentEntity
 import com.wfx.warungpos.data.local.entity.PaymentMethodEntity
 import com.wfx.warungpos.data.local.entity.ShiftEntity
+import com.wfx.warungpos.data.local.entity.StockBatchEntity
 import com.wfx.warungpos.data.local.entity.StockItemEntity
+import com.wfx.warungpos.data.local.entity.StockOpnameEntity
+import com.wfx.warungpos.data.local.entity.StockOpnameLineEntity
 import com.wfx.warungpos.data.local.entity.VariantGroupEntity
 import com.wfx.warungpos.data.local.entity.VariantOptionEntity
 
@@ -190,6 +194,65 @@ internal fun DataSnapshot.toStockItemEntity(): StockItemEntity? {
     )
 }
 
+internal fun DataSnapshot.toStockBatchEntity(): StockBatchEntity? {
+    val id = key ?: return null
+    return StockBatchEntity(
+        id = id,
+        stockItemId = child("stockItemId").getValue(String::class.java) ?: return null,
+        qty = child("qty").getValue(Double::class.java) ?: 0.0,
+        costPerUnit = child("costPerUnit").getValue(Long::class.java) ?: 0L,
+        receivedAt = child("receivedAt").getValue(Long::class.java) ?: return null,
+        expiresAt = child("expiresAt").getValue(Long::class.java),
+        updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
+        syncStatus = synced,
+        deviceId = child("deviceId").getValue(String::class.java) ?: "",
+    )
+}
+
+// menu_item_ingredients has a composite (menuItemId, stockItemId) primary key and no single id
+// column, so the RTDB key is a synthetic "menuItemId_stockItemId" pair instead of a row id.
+internal fun DataSnapshot.toMenuItemIngredientEntity(): MenuItemIngredientEntity? {
+    val (menuItemId, stockItemId) = key?.split("_", limit = 2)?.takeIf { it.size == 2 } ?: return null
+    return MenuItemIngredientEntity(
+        menuItemId = menuItemId,
+        stockItemId = stockItemId,
+        qtyPerServing = child("qtyPerServing").getValue(Double::class.java) ?: 0.0,
+        updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
+        syncStatus = synced,
+        deviceId = child("deviceId").getValue(String::class.java) ?: "",
+    )
+}
+
+internal fun DataSnapshot.toStockOpnameEntity(): StockOpnameEntity? {
+    val id = key ?: return null
+    return StockOpnameEntity(
+        id = id,
+        conductedBy = child("conductedBy").getValue(String::class.java) ?: return null,
+        status = child("status").getValue(String::class.java) ?: return null,
+        startedAt = child("startedAt").getValue(Long::class.java) ?: return null,
+        completedAt = child("completedAt").getValue(Long::class.java),
+        updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
+        syncStatus = synced,
+        deviceId = child("deviceId").getValue(String::class.java) ?: "",
+    )
+}
+
+internal fun DataSnapshot.toStockOpnameLineEntity(): StockOpnameLineEntity? {
+    val id = key ?: return null
+    return StockOpnameLineEntity(
+        id = id,
+        opnameId = child("opnameId").getValue(String::class.java) ?: return null,
+        stockItemId = child("stockItemId").getValue(String::class.java) ?: return null,
+        systemQty = child("systemQty").getValue(Double::class.java) ?: 0.0,
+        countedQty = child("countedQty").getValue(Double::class.java) ?: 0.0,
+        variance = child("variance").getValue(Double::class.java) ?: 0.0,
+        varianceReason = child("varianceReason").getValue(String::class.java),
+        updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
+        syncStatus = synced,
+        deviceId = child("deviceId").getValue(String::class.java) ?: "",
+    )
+}
+
 // ── Entity → RTDB Map ────────────────────────────────────────────────────────
 
 internal fun MenuCategoryEntity.toRtdbMap(): Map<String, Any?> = mapOf(
@@ -252,5 +315,29 @@ internal fun ExpenseEntity.toRtdbMap(): Map<String, Any?> = mapOf(
 
 internal fun StockItemEntity.toRtdbMap(): Map<String, Any?> = mapOf(
     "name" to name, "unit" to unit, "currentQty" to currentQty, "reorderPoint" to reorderPoint,
+    "updatedAt" to updatedAt, "deviceId" to deviceId,
+)
+
+internal fun StockBatchEntity.toRtdbMap(): Map<String, Any?> = mapOf(
+    "stockItemId" to stockItemId, "qty" to qty, "costPerUnit" to costPerUnit,
+    "receivedAt" to receivedAt, "expiresAt" to expiresAt, "updatedAt" to updatedAt,
+    "deviceId" to deviceId,
+)
+
+internal val MenuItemIngredientEntity.rtdbKey: String get() = "${menuItemId}_$stockItemId"
+
+internal fun MenuItemIngredientEntity.toRtdbMap(): Map<String, Any?> = mapOf(
+    "menuItemId" to menuItemId, "stockItemId" to stockItemId, "qtyPerServing" to qtyPerServing,
+    "updatedAt" to updatedAt, "deviceId" to deviceId,
+)
+
+internal fun StockOpnameEntity.toRtdbMap(): Map<String, Any?> = mapOf(
+    "conductedBy" to conductedBy, "status" to status, "startedAt" to startedAt,
+    "completedAt" to completedAt, "updatedAt" to updatedAt, "deviceId" to deviceId,
+)
+
+internal fun StockOpnameLineEntity.toRtdbMap(): Map<String, Any?> = mapOf(
+    "opnameId" to opnameId, "stockItemId" to stockItemId, "systemQty" to systemQty,
+    "countedQty" to countedQty, "variance" to variance, "varianceReason" to varianceReason,
     "updatedAt" to updatedAt, "deviceId" to deviceId,
 )

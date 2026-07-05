@@ -28,11 +28,6 @@
       "$id": { ".write": "auth != null" }
     },
 
-    "tables": {
-      ".read": "auth != null",
-      "$id": { ".write": "auth != null" }
-    },
-
     "paymentMethods": {
       ".read": "auth != null",
       "$id": { ".write": "auth != null" }
@@ -73,7 +68,17 @@
       "$id": { ".write": "auth != null" }
     },
 
+    "menuItemIngredients": {
+      ".read": "auth != null",
+      "$id": { ".write": "auth != null" }
+    },
+
     "opnames": {
+      ".read": "auth != null",
+      "$id": { ".write": "auth != null" }
+    },
+
+    "stockOpnameLines": {
       ".read": "auth != null",
       "$id": { ".write": "auth != null" }
     }

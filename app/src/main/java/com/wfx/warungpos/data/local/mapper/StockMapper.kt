@@ -3,10 +3,12 @@ package com.wfx.warungpos.data.local.mapper
 import com.wfx.warungpos.core.common.OpnameStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.VarianceReason
+import com.wfx.warungpos.data.local.entity.MenuItemIngredientEntity
 import com.wfx.warungpos.data.local.entity.StockBatchEntity
 import com.wfx.warungpos.data.local.entity.StockItemEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameLineEntity
+import com.wfx.warungpos.domain.model.MenuItemIngredient
 import com.wfx.warungpos.domain.model.StockBatch
 import com.wfx.warungpos.domain.model.StockItem
 import com.wfx.warungpos.domain.model.StockOpname
@@ -53,6 +55,24 @@ fun StockBatch.toEntity() = StockBatchEntity(
     costPerUnit = costPerUnit,
     receivedAt = receivedAt,
     expiresAt = expiresAt,
+    updatedAt = updatedAt,
+    syncStatus = syncStatus.name,
+    deviceId = deviceId,
+)
+
+fun MenuItemIngredientEntity.toDomain() = MenuItemIngredient(
+    menuItemId = menuItemId,
+    stockItemId = stockItemId,
+    qtyPerServing = qtyPerServing,
+    updatedAt = updatedAt,
+    syncStatus = SyncStatus.valueOf(syncStatus),
+    deviceId = deviceId,
+)
+
+fun MenuItemIngredient.toEntity() = MenuItemIngredientEntity(
+    menuItemId = menuItemId,
+    stockItemId = stockItemId,
+    qtyPerServing = qtyPerServing,
     updatedAt = updatedAt,
     syncStatus = syncStatus.name,
     deviceId = deviceId,

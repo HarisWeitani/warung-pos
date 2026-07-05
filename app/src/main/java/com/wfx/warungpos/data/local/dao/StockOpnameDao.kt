@@ -30,6 +30,9 @@ interface StockOpnameDao {
     @Query("SELECT * FROM stock_opname_lines WHERE opnameId = :opnameId")
     suspend fun getLinesForOpname(opnameId: String): List<StockOpnameLineEntity>
 
+    @Query("SELECT * FROM stock_opname_lines WHERE opnameId = :opnameId")
+    fun observeLinesForOpname(opnameId: String): Flow<List<StockOpnameLineEntity>>
+
     @Query("SELECT * FROM stock_opnames WHERE syncStatus = 'PENDING'")
     suspend fun getPendingOpnames(): List<StockOpnameEntity>
 

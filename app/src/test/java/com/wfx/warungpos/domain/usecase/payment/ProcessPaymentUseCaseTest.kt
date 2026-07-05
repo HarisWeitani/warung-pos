@@ -8,11 +8,17 @@ import com.wfx.warungpos.domain.exception.InsufficientPaymentException
 import com.wfx.warungpos.domain.exception.InsufficientTenderedAmountException
 import com.wfx.warungpos.domain.exception.ShiftNotOpenException
 import com.wfx.warungpos.domain.model.Bill
+import com.wfx.warungpos.domain.model.MenuItemIngredient
+import com.wfx.warungpos.domain.model.OrderItem
 import com.wfx.warungpos.domain.model.Shift
+import com.wfx.warungpos.domain.model.StockItem
+import com.wfx.warungpos.domain.usecase.stock.DeductStockForBillUseCase
 import com.wfx.warungpos.fake.FakeBillRepository
+import com.wfx.warungpos.fake.FakeOrderRepository
 import com.wfx.warungpos.fake.FakePaymentRepository
 import com.wfx.warungpos.fake.FakeSessionProvider
 import com.wfx.warungpos.fake.FakeShiftRepository
+import com.wfx.warungpos.fake.FakeStockRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -25,6 +31,8 @@ class ProcessPaymentUseCaseTest {
     private lateinit var paymentRepository: FakePaymentRepository
     private lateinit var shiftRepository: FakeShiftRepository
     private lateinit var sessionProvider: FakeSessionProvider
+    private lateinit var orderRepository: FakeOrderRepository
+    private lateinit var stockRepository: FakeStockRepository
     private lateinit var useCase: ProcessPaymentUseCase
 
     private val bill = Bill(
@@ -40,7 +48,12 @@ class ProcessPaymentUseCaseTest {
         paymentRepository = FakePaymentRepository(billRepository)
         shiftRepository = FakeShiftRepository()
         sessionProvider = FakeSessionProvider()
-        useCase = ProcessPaymentUseCase(billRepository, paymentRepository, shiftRepository, sessionProvider)
+        orderRepository = FakeOrderRepository()
+        stockRepository = FakeStockRepository()
+        useCase = ProcessPaymentUseCase(
+            billRepository, paymentRepository, shiftRepository, sessionProvider,
+            DeductStockForBillUseCase(orderRepository, stockRepository),
+        )
 
         billRepository.bills[bill.id] = bill
         shiftRepository.shifts["shift-1"] = Shift(
@@ -104,5 +117,29 @@ class ProcessPaymentUseCaseTest {
         shiftRepository.shifts.clear()
         val result = useCase(bill.id, listOf(PaymentRow("pm_tunai", 45_000L, 45_000L)))
         assertTrue(result.exceptionOrNull() is ShiftNotOpenException)
+    }
+
+    @Test
+    fun `successful payment deducts recipe ingredients from stock`() = runTest {
+        stockRepository.items["stock-1"] = StockItem(
+            id = "stock-1", name = "Rice", unit = "kg", currentQty = 10.0, reorderPoint = 2.0,
+            updatedAt = 0L, syncStatus = com.wfx.warungpos.core.common.SyncStatus.SYNCED, deviceId = "dev",
+        )
+        stockRepository.ingredients.add(
+            MenuItemIngredient(
+                menuItemId = "item-1", stockItemId = "stock-1", qtyPerServing = 0.5,
+                updatedAt = 0L, syncStatus = com.wfx.warungpos.core.common.SyncStatus.SYNCED, deviceId = "dev",
+            )
+        )
+        orderRepository.items["oi-1"] = OrderItem(
+            id = "oi-1", billId = bill.id, menuItemId = "item-1", nameSnapshot = "Nasi", priceSnapshot = 15_000L,
+            quantity = 3, selectedVariants = emptyList(), lineTotal = 45_000L,
+            status = com.wfx.warungpos.core.common.OrderItemStatus.ORDERED, voidReason = null, voidedBy = null,
+            createdAt = 0L, updatedAt = 0L, syncStatus = com.wfx.warungpos.core.common.SyncStatus.SYNCED, deviceId = "dev",
+        )
+
+        val result = useCase(bill.id, listOf(PaymentRow("pm_tunai", 45_000L, 45_000L)))
+        assertTrue(result.isSuccess)
+        assertEquals(8.5, stockRepository.items["stock-1"]!!.currentQty, 0.0001)
     }
 }

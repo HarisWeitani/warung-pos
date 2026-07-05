@@ -13,3 +13,7 @@ class InsufficientPermissionsException : Exception("Insufficient permissions for
 class BillNotVoidableException : Exception("Bill cannot be voided in its current state")
 class OpenBillsBlockShiftCloseException(val openBills: List<Bill>) :
     Exception("Cannot close day: ${openBills.size} open bill(s) remain")
+class OpnameAlreadyInProgressException : Exception("A stock opname session is already in progress")
+class OpnameNotInProgressException : Exception("No stock opname session is in progress")
+class MissingVarianceReasonException(val stockItemName: String) :
+    Exception("A reason is required for the variance on '$stockItemName'")
