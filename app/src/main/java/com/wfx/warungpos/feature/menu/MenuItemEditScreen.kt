@@ -38,7 +38,7 @@ import com.wfx.warungpos.feature.menu.component.VariantGroupEditor
 fun MenuItemEditScreen(
     state: MenuItemEditUiState,
     onNameChange: (String) -> Unit,
-    onCategoryChange: (String) -> Unit,
+    onCategoryChange: (String?) -> Unit,
     onPriceChange: (String) -> Unit,
     onSave: () -> Unit,
     onAddVariantGroup: () -> Unit,
@@ -51,7 +51,7 @@ fun MenuItemEditScreen(
     modifier: Modifier = Modifier,
 ) {
     var categoryExpanded by remember { mutableStateOf(false) }
-    val isValid = state.name.isNotBlank() && (state.price.toLongOrNull() ?: 0L) > 0 && state.categoryId != null
+    val isValid = state.name.isNotBlank() && (state.price.toLongOrNull() ?: 0L) > 0
 
     Scaffold(
         modifier = modifier,
@@ -84,7 +84,7 @@ fun MenuItemEditScreen(
             item {
                 ExposedDropdownMenuBox(expanded = categoryExpanded, onExpandedChange = { categoryExpanded = it }) {
                     OutlinedTextField(
-                        value = state.categories.firstOrNull { it.id == state.categoryId }?.name ?: "",
+                        value = state.categories.firstOrNull { it.id == state.categoryId }?.name ?: "Uncategorized",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Category") },
@@ -97,6 +97,10 @@ fun MenuItemEditScreen(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false },
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Uncategorized") },
+                            onClick = { onCategoryChange(null); categoryExpanded = false },
+                        )
                         state.categories.forEach { cat ->
                             DropdownMenuItem(
                                 text = { Text(cat.name) },

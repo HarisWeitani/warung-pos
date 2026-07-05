@@ -31,10 +31,10 @@ class UpsertMenuItemUseCaseTest {
     }
 
     @Test
-    fun nullCategory_failsWithIllegalArgumentException() = runTest {
+    fun nullCategory_savesSuccessfully() = runTest {
         val repo = FakeMenuRepository()
         val result = UpsertMenuItemUseCase(repo)(item(categoryId = null))
-        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(result.isSuccess)
     }
 
     @Test

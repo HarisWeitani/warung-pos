@@ -60,7 +60,7 @@ class MenuItemEditViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val categories = menuRepository.observeCategories().first()
-            _uiState.update { it.copy(categories = categories, categoryId = it.categoryId ?: categories.firstOrNull()?.id) }
+            _uiState.update { it.copy(categories = categories) }
             if (initialItemId != null) {
                 menuRepository.getMenuItem(initialItemId)?.let { item ->
                     _uiState.update {
@@ -86,7 +86,7 @@ class MenuItemEditViewModel @Inject constructor(
     }
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value, error = null) }
-    fun onCategoryChange(id: String) = _uiState.update { it.copy(categoryId = id, error = null) }
+    fun onCategoryChange(id: String?) = _uiState.update { it.copy(categoryId = id, error = null) }
     fun onPriceChange(value: String) = _uiState.update { it.copy(price = value.filter { c -> c.isDigit() }, error = null) }
 
     fun addVariantGroup() {

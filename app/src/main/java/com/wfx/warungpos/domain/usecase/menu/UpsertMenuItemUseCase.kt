@@ -8,7 +8,6 @@ class UpsertMenuItemUseCase @Inject constructor(private val menuRepository: Menu
     suspend operator fun invoke(item: MenuItem): Result<Unit> {
         if (item.name.isBlank()) return Result.failure(IllegalArgumentException("Name must not be blank"))
         if (item.basePrice <= 0) return Result.failure(IllegalArgumentException("Price must be greater than 0"))
-        if (item.categoryId == null) return Result.failure(IllegalArgumentException("Category must be selected"))
         menuRepository.saveMenuItem(item)
         return Result.success(Unit)
     }

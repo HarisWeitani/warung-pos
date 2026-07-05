@@ -83,6 +83,7 @@ fun MenuManagementScreen(
         LazyColumn(contentPadding = padding) {
             state.categories.forEach { category ->
                 val items = state.itemsByCategory[category.id].orEmpty()
+                if (items.isEmpty()) return@forEach
                 item {
                     Text(
                         text = category.name,
@@ -92,6 +93,27 @@ fun MenuManagementScreen(
                     )
                 }
                 items(items, key = { it.id }) { menuItem ->
+                    MenuManagementRow(
+                        item = menuItem,
+                        onToggleSoldOut = { onToggleSoldOut(menuItem) },
+                        onHide = { onRequestHide(menuItem) },
+                        onClick = { onItemClick(menuItem) },
+                    )
+                }
+                item { HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp)) }
+            }
+
+            val uncategorizedItems = state.itemsByCategory[UNCATEGORIZED_ID].orEmpty()
+            if (uncategorizedItems.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Uncategorized",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+                items(uncategorizedItems, key = { it.id }) { menuItem ->
                     MenuManagementRow(
                         item = menuItem,
                         onToggleSoldOut = { onToggleSoldOut(menuItem) },

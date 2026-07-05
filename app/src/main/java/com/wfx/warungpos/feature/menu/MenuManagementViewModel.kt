@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+const val UNCATEGORIZED_ID = "uncategorized"
+
 data class MenuManagementUiState(
     val categories: List<MenuCategory> = emptyList(),
     val itemsByCategory: Map<String, List<MenuItem>> = emptyMap(),
@@ -43,9 +45,12 @@ class MenuManagementViewModel @Inject constructor(
         _itemPendingHide,
         _itemInOpenBillWarning,
     ) { categories, items, pending, warning ->
+        val knownCategoryIds = categories.map { it.id }.toSet()
         MenuManagementUiState(
             categories = categories,
-            itemsByCategory = items.filter { it.isAvailable }.groupBy { it.categoryId ?: "" },
+            itemsByCategory = items.filter { it.isAvailable }.groupBy { item ->
+                item.categoryId?.takeIf { it in knownCategoryIds } ?: UNCATEGORIZED_ID
+            },
             itemPendingHide = pending,
             itemInOpenBillWarning = warning,
         )
