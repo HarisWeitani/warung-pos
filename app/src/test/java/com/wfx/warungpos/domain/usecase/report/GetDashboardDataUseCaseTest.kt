@@ -1,7 +1,6 @@
 package com.wfx.warungpos.domain.usecase.report
 
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.domain.model.Bill
@@ -34,7 +33,7 @@ class GetDashboardDataUseCaseTest {
     }
 
     private fun paidBillToday(id: String, total: Long) = Bill(
-        id = id, tableId = null, type = BillType.UPFRONT, status = BillStatus.PAID,
+        id = id, status = BillStatus.PAID,
         sessionLabel = "Counter", createdAt = DateUtil.nowEpochMs(), paidAt = DateUtil.nowEpochMs(),
         subtotal = total, discountTotal = 0L, grandTotal = total, note = null, shiftId = "shift-1",
         voidReason = null, voidedBy = null, updatedAt = DateUtil.nowEpochMs(), syncStatus = SyncStatus.SYNCED, deviceId = "dev",

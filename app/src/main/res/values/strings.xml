@@ -3,7 +3,6 @@
 
     <!-- Bottom navigation -->
     <string name="nav_order">Order</string>
-    <string name="nav_tables">Tables</string>
     <string name="nav_reports">Reports</string>
     <string name="nav_more">More</string>
 
@@ -45,7 +44,6 @@
 
     <!-- Settings -->
     <string name="settings_language">Language</string>
-    <string name="settings_tables">Table Setup</string>
     <string name="settings_payment_methods">Payment Methods</string>
     <string name="settings_about">About</string>
 

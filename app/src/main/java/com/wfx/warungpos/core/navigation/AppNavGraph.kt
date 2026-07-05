@@ -43,19 +43,13 @@ import com.wfx.warungpos.feature.settings.LanguageSettingsViewModel
 import com.wfx.warungpos.feature.settings.PaymentMethodSettingsScreen
 import com.wfx.warungpos.feature.settings.PaymentMethodSettingsViewModel
 import com.wfx.warungpos.feature.settings.SettingsScreen
-import com.wfx.warungpos.feature.settings.TableSettingsScreen
-import com.wfx.warungpos.feature.settings.TableSettingsViewModel
 import com.wfx.warungpos.feature.shift.ShiftCloseScreen
 import com.wfx.warungpos.feature.shift.ShiftCloseViewModel
 import com.wfx.warungpos.feature.shift.ShiftHistoryScreen
 import com.wfx.warungpos.feature.shift.ShiftHistoryViewModel
-import com.wfx.warungpos.feature.shift.ShiftOpenScreen
-import com.wfx.warungpos.feature.shift.ShiftOpenViewModel
 import com.wfx.warungpos.feature.shift.ZReportScreen
 import com.wfx.warungpos.feature.shift.ZReportViewModel
 import com.wfx.warungpos.feature.stock.ComingSoonScreen
-import com.wfx.warungpos.feature.tables.TablesScreen
-import com.wfx.warungpos.feature.tables.TablesViewModel
 
 @Composable
 fun AppNavGraph(
@@ -76,35 +70,10 @@ fun AppNavGraph(
                     navController.navigate(BillDetailRoute(billId))
                 }
             }
-            LaunchedEffect(vm) {
-                vm.navToTables.collect {
-                    navController.navigate(TablesRoute)
-                }
-            }
             OrderScreen(
                 state = state,
                 onBillClick = { navController.navigate(BillDetailRoute(it)) },
-                onShowDestinationSheet = vm::showDestinationSheet,
-                onDismissDestinationSheet = vm::dismissDestinationSheet,
-                onGrabAndGo = vm::createUpfrontBill,
-                onNewTable = vm::onNewTableSelected,
-                onExistingBillSelected = vm::onExistingBillSelected,
-                onOpenShift = { navController.navigate(ShiftOpenRoute) },
-            )
-        }
-
-        composable<TablesRoute> {
-            val vm: TablesViewModel = hiltViewModel()
-            val state by vm.uiState.collectAsStateWithLifecycle()
-            LaunchedEffect(vm) {
-                vm.navToBill.collect { billId ->
-                    navController.navigate(BillDetailRoute(billId))
-                }
-            }
-            TablesScreen(
-                state = state,
-                onTableClick = { tableId, existingBillId -> vm.onTableTapped(tableId, existingBillId) },
-                onOpenShift = { navController.navigate(ShiftOpenRoute) },
+                onNewBill = vm::createBill,
             )
         }
 
@@ -152,24 +121,6 @@ fun AppNavGraph(
                 onSelectMethod = vm::selectMethod,
                 onTenderChange = vm::onTenderChange,
                 onConfirm = vm::confirmPayment,
-            )
-        }
-
-        composable<ShiftOpenRoute> {
-            val vm: ShiftOpenViewModel = hiltViewModel()
-            val state by vm.uiState.collectAsStateWithLifecycle()
-            LaunchedEffect(state.isSuccess) {
-                if (state.isSuccess) {
-                    navController.navigate(OrderRoute) {
-                        popUpTo<OrderRoute> { inclusive = false }
-                    }
-                }
-            }
-            ShiftOpenScreen(
-                state = state,
-                onFloatChange = vm::onFloatChange,
-                onOpenShift = vm::openShift,
-                onBack = { navController.popBackStack() },
             )
         }
 
@@ -260,12 +211,10 @@ fun AppNavGraph(
                 state = state,
                 onLock = vm::lock,
                 onNavigateToMenuManagement = { navController.navigate(MenuManagementRoute) },
-                onNavigateToTableSettings = { navController.navigate(TableSettingsRoute) },
                 onNavigateToPaymentMethods = { navController.navigate(PaymentMethodSettingsRoute) },
                 onNavigateToExpenseCategories = { navController.navigate(ExpenseCategorySettingsRoute) },
                 onNavigateToLanguage = { navController.navigate(LanguageSettingsRoute) },
                 onNavigateToAbout = { navController.navigate(AboutRoute) },
-                onNavigateToShiftOpen = { navController.navigate(ShiftOpenRoute) },
                 onNavigateToShiftClose = { navController.navigate(ShiftCloseRoute) },
                 onNavigateToShiftHistory = { navController.navigate(ShiftHistoryRoute) },
                 onNavigateToExpenses = { navController.navigate(ExpenseLogRoute) },
@@ -334,22 +283,10 @@ fun AppNavGraph(
         composable<SettingsRoute> {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToTables = { navController.navigate(TableSettingsRoute) },
                 onNavigateToPaymentMethods = { navController.navigate(PaymentMethodSettingsRoute) },
                 onNavigateToExpenseCategories = { navController.navigate(ExpenseCategorySettingsRoute) },
                 onNavigateToLanguage = { navController.navigate(LanguageSettingsRoute) },
                 onNavigateToAbout = { navController.navigate(AboutRoute) },
-            )
-        }
-
-        composable<TableSettingsRoute> {
-            val vm: TableSettingsViewModel = hiltViewModel()
-            val tables by vm.tables.collectAsStateWithLifecycle()
-            TableSettingsScreen(
-                tables = tables,
-                onAddTable = vm::addTable,
-                onToggleActive = vm::toggleActive,
-                onBack = { navController.popBackStack() },
             )
         }
 

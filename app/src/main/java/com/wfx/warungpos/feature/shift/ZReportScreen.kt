@@ -69,7 +69,7 @@ fun ZReportScreen(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Shift Info", style = MaterialTheme.typography.titleSmall,
+                            Text("Day Info", style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("Opened: ${DateUtil.toDisplayString(shift.openedAt)}")
                             if (shift.closedAt != null) {

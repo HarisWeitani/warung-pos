@@ -77,7 +77,7 @@ fun ExpenseLogScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (state.openShift == null) "No open shift" else "No expenses recorded",
+                    text = if (state.openShift == null) "No open day" else "No expenses recorded",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

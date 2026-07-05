@@ -1,7 +1,6 @@
 package com.wfx.warungpos.data.local.mapper
 
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.VoidReason
 import com.wfx.warungpos.data.local.entity.BillEntity
@@ -14,8 +13,6 @@ class BillMapperTest {
 
     private val entity = BillEntity(
         id = "bill-1",
-        tableId = "table-1",
-        type = "OPEN_BILL",
         status = "OPEN",
         sessionLabel = "Meja 1",
         createdAt = 1_000L,
@@ -36,7 +33,6 @@ class BillMapperTest {
     fun `entity toDomain maps all fields correctly`() {
         val domain = entity.toDomain()
         assertEquals("bill-1", domain.id)
-        assertEquals(BillType.OPEN_BILL, domain.type)
         assertEquals(BillStatus.OPEN, domain.status)
         assertEquals(SyncStatus.PENDING, domain.syncStatus)
         assertNull(domain.voidReason)
@@ -64,8 +60,6 @@ class BillMapperTest {
     fun `domain Bill with enum types toEntity preserves string representations`() {
         val domain = Bill(
             id = "bill-2",
-            tableId = null,
-            type = BillType.UPFRONT,
             status = BillStatus.PAID,
             sessionLabel = "Counter",
             createdAt = 2_000L,
@@ -82,7 +76,6 @@ class BillMapperTest {
             deviceId = "dev-2",
         )
         val entity = domain.toEntity()
-        assertEquals("UPFRONT", entity.type)
         assertEquals("PAID", entity.status)
         assertEquals("SYNCED", entity.syncStatus)
     }

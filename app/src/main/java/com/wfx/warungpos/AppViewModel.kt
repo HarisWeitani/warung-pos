@@ -10,6 +10,7 @@ import com.wfx.warungpos.core.common.UserRole
 import com.wfx.warungpos.data.remote.firebase.FirebaseAuthDataSource
 import com.wfx.warungpos.data.remote.sync.SyncCoordinator
 import com.wfx.warungpos.data.seeding.FirstRunManager
+import com.wfx.warungpos.domain.usecase.shift.EnsureDayOpenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +35,7 @@ class AppViewModel @Inject constructor(
     private val firstRunManager: FirstRunManager,
     private val syncCoordinator: SyncCoordinator,
     private val authDataSource: FirebaseAuthDataSource,
+    private val ensureDayOpenUseCase: EnsureDayOpenUseCase,
     val appPreferences: AppPreferences,
 ) : ViewModel() {
 
@@ -49,7 +51,10 @@ class AppViewModel @Inject constructor(
     val versionGateState: StateFlow<VersionGateState> = _versionGateState.asStateFlow()
 
     init {
-        viewModelScope.launch { firstRunManager.ensureSeeded() }
+        viewModelScope.launch {
+            firstRunManager.ensureSeeded()
+            ensureDayOpenUseCase()
+        }
 
         viewModelScope.launch {
             // Anonymous sign-in keeps RTDB sync working without a user-facing login.

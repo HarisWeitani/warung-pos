@@ -9,24 +9,16 @@ import androidx.room.PrimaryKey
     tableName = "bills",
     foreignKeys = [
         ForeignKey(
-            entity = TableEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tableId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
-        ForeignKey(
             entity = ShiftEntity::class,
             parentColumns = ["id"],
             childColumns = ["shiftId"],
             onDelete = ForeignKey.SET_NULL,
         ),
     ],
-    indices = [Index("tableId"), Index("shiftId"), Index("status")],
+    indices = [Index("shiftId"), Index("status")],
 )
 data class BillEntity(
     @PrimaryKey val id: String,
-    val tableId: String?,
-    val type: String,
     val status: String,
     val sessionLabel: String,
     val createdAt: Long,

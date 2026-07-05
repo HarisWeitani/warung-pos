@@ -15,10 +15,10 @@ import com.wfx.warungpos.data.local.dao.ReportQueryDao
 import com.wfx.warungpos.data.local.dao.ShiftDao
 import com.wfx.warungpos.data.local.dao.StockDao
 import com.wfx.warungpos.data.local.dao.StockOpnameDao
-import com.wfx.warungpos.data.local.dao.TableDao
 import com.wfx.warungpos.data.local.dao.VariantDao
 import com.wfx.warungpos.data.local.dao.ZReportDao
 import com.wfx.warungpos.data.local.db.MIGRATION_1_2
+import com.wfx.warungpos.data.local.db.MIGRATION_2_3
 import com.wfx.warungpos.data.local.db.WarungDatabase
 import dagger.Module
 import dagger.Provides
@@ -43,13 +43,12 @@ object AppModule {
     @Singleton
     fun provideWarungDatabase(@ApplicationContext context: Context): WarungDatabase =
         Room.databaseBuilder(context, WarungDatabase::class.java, "warung_pos_db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides fun provideMenuCategoryDao(db: WarungDatabase): MenuCategoryDao = db.menuCategoryDao()
     @Provides fun provideMenuItemDao(db: WarungDatabase): MenuItemDao = db.menuItemDao()
     @Provides fun provideVariantDao(db: WarungDatabase): VariantDao = db.variantDao()
-    @Provides fun provideTableDao(db: WarungDatabase): TableDao = db.tableDao()
     @Provides fun provideShiftDao(db: WarungDatabase): ShiftDao = db.shiftDao()
     @Provides fun provideBillDao(db: WarungDatabase): BillDao = db.billDao()
     @Provides fun provideOrderItemDao(db: WarungDatabase): OrderItemDao = db.orderItemDao()

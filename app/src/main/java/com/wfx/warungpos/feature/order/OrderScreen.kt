@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -31,69 +30,27 @@ import androidx.compose.ui.unit.dp
 import com.wfx.warungpos.core.util.CurrencyFormatter
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.domain.model.Bill
-import com.wfx.warungpos.feature.order.component.OrderDestinationSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderScreen(
     state: OrderUiState,
     onBillClick: (billId: String) -> Unit,
-    onShowDestinationSheet: () -> Unit,
-    onDismissDestinationSheet: () -> Unit,
-    onGrabAndGo: () -> Unit,
-    onNewTable: () -> Unit,
-    onExistingBillSelected: (billId: String) -> Unit,
-    onOpenShift: () -> Unit,
+    onNewBill: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (state.showDestinationSheet) {
-        OrderDestinationSheet(
-            openBills = state.openBills,
-            onGrabAndGo = onGrabAndGo,
-            onNewTable = onNewTable,
-            onExistingBill = onExistingBillSelected,
-            onDismiss = onDismissDestinationSheet,
-        )
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(title = { Text("Orders") })
         },
         floatingActionButton = {
-            if (state.openShift != null) {
-                FloatingActionButton(onClick = onShowDestinationSheet) {
-                    Icon(Icons.Default.Add, contentDescription = "New bill")
-                }
+            FloatingActionButton(onClick = onNewBill) {
+                Icon(Icons.Default.Add, contentDescription = "New bill")
             }
         },
     ) { padding ->
-        if (state.openShift == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "No open shift",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Open a shift to start taking orders",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onOpenShift) {
-                        Text("Open Shift")
-                    }
-                }
-            }
-        } else if (state.openBills.isEmpty()) {
+        if (state.openBills.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

@@ -46,12 +46,10 @@ fun MoreScreen(
     state: MoreUiState,
     onLock: () -> Unit,
     onNavigateToMenuManagement: () -> Unit,
-    onNavigateToTableSettings: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToExpenseCategories: () -> Unit,
     onNavigateToLanguage: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    onNavigateToShiftOpen: () -> Unit,
     onNavigateToShiftClose: () -> Unit,
     onNavigateToShiftHistory: () -> Unit,
     onNavigateToExpenses: () -> Unit,
@@ -95,10 +93,8 @@ fun MoreScreen(
             }
 
             item {
-                MoreSectionHeader("Shift")
-                MoreItem("Open Shift", Icons.Default.TableBar, onClick = onNavigateToShiftOpen)
-                MoreItem("Close Shift", Icons.Default.TableBar, onClick = onNavigateToShiftClose)
-                MoreItem("Shift History", Icons.Default.TableBar, onClick = onNavigateToShiftHistory)
+                MoreSectionHeader("Day")
+                MoreItem("Day History", Icons.Default.TableBar, onClick = onNavigateToShiftHistory)
                 HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             }
 
@@ -120,10 +116,10 @@ fun MoreScreen(
                 item {
                     MoreSectionHeader("Settings")
                     MoreItem("Menu Management", Icons.Default.Restaurant, onClick = onNavigateToMenuManagement)
-                    MoreItem("Table Setup", Icons.Default.TableBar, onClick = onNavigateToTableSettings)
                     MoreItem("Payment Methods", Icons.Default.Payments, onClick = onNavigateToPaymentMethods)
                     MoreItem("Expense Categories", Icons.Default.Payments, onClick = onNavigateToExpenseCategories)
                     MoreItem("Language", Icons.Default.Language, onClick = onNavigateToLanguage)
+                    MoreItem("Close Day", Icons.Default.TableBar, onClick = onNavigateToShiftClose)
                     MoreItem("About", Icons.Default.Info, onClick = onNavigateToAbout)
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }

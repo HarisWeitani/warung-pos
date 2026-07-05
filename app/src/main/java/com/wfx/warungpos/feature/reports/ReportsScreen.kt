@@ -53,7 +53,7 @@ fun ReportsScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No open shift",
+                    text = "No open day",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -92,7 +92,7 @@ fun ReportsScreen(
             state.shift?.let { shift ->
                 item {
                     Text(
-                        text = "Shift started: ${DateUtil.toDisplayString(shift.openedAt)}",
+                        text = "Day started: ${DateUtil.toDisplayString(shift.openedAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -102,7 +102,7 @@ fun ReportsScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Shift Summary", style = MaterialTheme.typography.titleMedium)
+                        Text("Day Summary", style = MaterialTheme.typography.titleMedium)
                         if (state.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.padding(8.dp))
                         } else {

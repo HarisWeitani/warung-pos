@@ -1,18 +1,13 @@
 package com.wfx.warungpos.domain.usecase.order
 
-import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.ShiftStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.VariantSelectionType
-import com.wfx.warungpos.domain.exception.BillAlreadyPaidException
 import com.wfx.warungpos.domain.exception.EmptyCartException
 import com.wfx.warungpos.domain.exception.MissingRequiredVariantException
 import com.wfx.warungpos.domain.exception.ShiftNotOpenException
-import com.wfx.warungpos.domain.model.Bill
 import com.wfx.warungpos.domain.model.CartItem
 import com.wfx.warungpos.domain.model.MenuItem
-import com.wfx.warungpos.domain.model.OrderDestination
 import com.wfx.warungpos.domain.model.Shift
 import com.wfx.warungpos.domain.model.VariantGroup
 import com.wfx.warungpos.domain.model.VariantOption
@@ -24,7 +19,6 @@ import com.wfx.warungpos.fake.FakeSessionProvider
 import com.wfx.warungpos.fake.FakeShiftRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -76,15 +70,15 @@ class ConfirmOrderUseCaseTest {
     }
 
     @Test
-    fun `valid cart with active shift and new table succeeds`() = runTest {
+    fun `valid cart with active shift succeeds`() = runTest {
         val cart = listOf(CartItem(menuItem, 2, emptyList()))
-        val result = useCase(cart, OrderDestination.NewTable("table-1"))
+        val result = useCase(cart)
         assertTrue(result.isSuccess)
     }
 
     @Test
     fun `empty cart fails with EmptyCartException`() = runTest {
-        val result = useCase(emptyList(), OrderDestination.GrabAndGo)
+        val result = useCase(emptyList())
         assertTrue(result.exceptionOrNull() is EmptyCartException)
     }
 
@@ -92,7 +86,7 @@ class ConfirmOrderUseCaseTest {
     fun `no active shift fails with ShiftNotOpenException`() = runTest {
         shiftRepository.shifts.clear()
         val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val result = useCase(cart, OrderDestination.GrabAndGo)
+        val result = useCase(cart)
         assertTrue(result.exceptionOrNull() is ShiftNotOpenException)
     }
 
@@ -105,31 +99,17 @@ class ConfirmOrderUseCaseTest {
         )
         menuRepository.variantGroups[group.id] = group
         val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val result = useCase(cart, OrderDestination.GrabAndGo)
+        val result = useCase(cart)
         assertTrue(result.exceptionOrNull() is MissingRequiredVariantException)
     }
 
     @Test
-    fun `grab-and-go destination creates bill with null tableId and UPFRONT type`() = runTest {
+    fun `confirm creates a single pay-first bill attached to the open shift`() = runTest {
         val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val result = useCase(cart, OrderDestination.GrabAndGo)
+        val result = useCase(cart)
         val billId = result.getOrThrow()
         val bill = billRepository.getBill(billId)!!
-        assertNull(bill.tableId)
-        assertEquals(BillType.UPFRONT, bill.type)
-    }
-
-    @Test
-    fun `existing bill destination with PAID bill fails with BillAlreadyPaidException`() = runTest {
-        billRepository.bills["bill-1"] = Bill(
-            id = "bill-1", tableId = null, type = BillType.UPFRONT, status = BillStatus.PAID,
-            sessionLabel = "Counter", createdAt = 0L, paidAt = 0L, subtotal = 0L, discountTotal = 0L,
-            grandTotal = 0L, note = null, shiftId = "shift-1", voidReason = null, voidedBy = null,
-            updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
-        )
-        val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val result = useCase(cart, OrderDestination.ExistingBill("bill-1"))
-        assertTrue(result.exceptionOrNull() is BillAlreadyPaidException)
+        assertEquals("shift-1", bill.shiftId)
     }
 
     @Test
@@ -139,7 +119,7 @@ class ConfirmOrderUseCaseTest {
             VariantSelection(groupId = "g2", groupName = "Spice", optionId = "o2", optionName = "Extra Hot", priceDelta = 2_000L),
         )
         val cart = listOf(CartItem(menuItem, 1, variants))
-        val billId = useCase(cart, OrderDestination.GrabAndGo).getOrThrow()
+        val billId = useCase(cart).getOrThrow()
         val item = orderRepository.items.values.first { it.billId == billId }
         assertEquals(menuItem.basePrice + 3_000L + 2_000L, item.priceSnapshot)
     }
@@ -147,7 +127,7 @@ class ConfirmOrderUseCaseTest {
     @Test
     fun `changing menu item basePrice after confirm does not affect saved priceSnapshot`() = runTest {
         val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val billId = useCase(cart, OrderDestination.GrabAndGo).getOrThrow()
+        val billId = useCase(cart).getOrThrow()
         val savedItem = orderRepository.items.values.first { it.billId == billId }
         val originalSnapshot = savedItem.priceSnapshot
 
@@ -161,7 +141,7 @@ class ConfirmOrderUseCaseTest {
     fun `changing option priceDelta after confirm does not affect saved selectedVariants`() = runTest {
         val variant = VariantSelection(groupId = "g1", groupName = "Size", optionId = "o1", optionName = "Large", priceDelta = 3_000L)
         val cart = listOf(CartItem(menuItem, 1, listOf(variant)))
-        val billId = useCase(cart, OrderDestination.GrabAndGo).getOrThrow()
+        val billId = useCase(cart).getOrThrow()
 
         val option = VariantOption(id = "o1", variantGroupId = "g1", name = "Large", priceDelta = 50_000L, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev")
         menuRepository.variantOptions[option.id] = option
@@ -173,7 +153,7 @@ class ConfirmOrderUseCaseTest {
     @Test
     fun `nameSnapshot is captured at confirm time and unaffected by later rename`() = runTest {
         val cart = listOf(CartItem(menuItem, 1, emptyList()))
-        val billId = useCase(cart, OrderDestination.GrabAndGo).getOrThrow()
+        val billId = useCase(cart).getOrThrow()
 
         menuRepository.items[menuItem.id] = menuItem.copy(name = "Renamed Dish")
 

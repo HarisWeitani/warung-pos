@@ -11,7 +11,6 @@ import com.wfx.warungpos.data.local.entity.PaymentEntity
 import com.wfx.warungpos.data.local.entity.PaymentMethodEntity
 import com.wfx.warungpos.data.local.entity.ShiftEntity
 import com.wfx.warungpos.data.local.entity.StockItemEntity
-import com.wfx.warungpos.data.local.entity.TableEntity
 import com.wfx.warungpos.data.local.entity.VariantGroupEntity
 import com.wfx.warungpos.data.local.entity.VariantOptionEntity
 
@@ -73,18 +72,6 @@ internal fun DataSnapshot.toVariantOptionEntity(): VariantOptionEntity? {
     )
 }
 
-internal fun DataSnapshot.toTableEntity(): TableEntity? {
-    val id = key ?: return null
-    return TableEntity(
-        id = id,
-        label = child("label").getValue(String::class.java),
-        isActive = child("isActive").getValue(Boolean::class.java) ?: true,
-        updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
-        syncStatus = synced,
-        deviceId = child("deviceId").getValue(String::class.java) ?: "",
-    )
-}
-
 internal fun DataSnapshot.toShiftEntity(): ShiftEntity? {
     val id = key ?: return null
     return ShiftEntity(
@@ -106,8 +93,6 @@ internal fun DataSnapshot.toBillEntity(): BillEntity? {
     val id = key ?: return null
     return BillEntity(
         id = id,
-        tableId = child("tableId").getValue(String::class.java),
-        type = child("type").getValue(String::class.java) ?: return null,
         status = child("status").getValue(String::class.java) ?: return null,
         sessionLabel = child("sessionLabel").getValue(String::class.java) ?: return null,
         createdAt = child("createdAt").getValue(Long::class.java) ?: return null,
@@ -227,10 +212,6 @@ internal fun VariantOptionEntity.toRtdbMap(): Map<String, Any?> = mapOf(
     "updatedAt" to updatedAt, "deviceId" to deviceId,
 )
 
-internal fun TableEntity.toRtdbMap(): Map<String, Any?> = mapOf(
-    "label" to label, "isActive" to isActive, "updatedAt" to updatedAt, "deviceId" to deviceId,
-)
-
 internal fun ShiftEntity.toRtdbMap(): Map<String, Any?> = mapOf(
     "openedBy" to openedBy, "closedBy" to closedBy, "status" to status,
     "openedAt" to openedAt, "closedAt" to closedAt, "openingFloat" to openingFloat,
@@ -238,7 +219,7 @@ internal fun ShiftEntity.toRtdbMap(): Map<String, Any?> = mapOf(
 )
 
 internal fun BillEntity.toRtdbMap(): Map<String, Any?> = mapOf(
-    "tableId" to tableId, "type" to type, "status" to status, "sessionLabel" to sessionLabel,
+    "status" to status, "sessionLabel" to sessionLabel,
     "createdAt" to createdAt, "paidAt" to paidAt, "subtotal" to subtotal,
     "discountTotal" to discountTotal, "grandTotal" to grandTotal, "note" to note,
     "shiftId" to shiftId, "voidReason" to voidReason, "voidedBy" to voidedBy,

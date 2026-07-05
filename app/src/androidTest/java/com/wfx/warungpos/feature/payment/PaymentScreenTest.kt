@@ -8,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.domain.model.Bill
 import com.wfx.warungpos.domain.model.PaymentMethod
@@ -29,7 +28,7 @@ class PaymentScreenTest {
     val composeTestRule = createComposeRule()
 
     private val bill = Bill(
-        id = "bill-1", tableId = null, type = BillType.UPFRONT, status = BillStatus.OPEN,
+        id = "bill-1", status = BillStatus.OPEN,
         sessionLabel = "Counter", createdAt = 0L, paidAt = null, subtotal = 45_000L,
         discountTotal = 0L, grandTotal = 45_000L, note = null, shiftId = "shift-1",
         voidReason = null, voidedBy = null, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",

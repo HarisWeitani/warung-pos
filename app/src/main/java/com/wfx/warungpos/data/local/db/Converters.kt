@@ -2,7 +2,6 @@ package com.wfx.warungpos.data.local.db
 
 import androidx.room.TypeConverter
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.ExpenseCategory
 import com.wfx.warungpos.core.common.OpnameStatus
 import com.wfx.warungpos.core.common.OrderItemStatus
@@ -15,9 +14,6 @@ import com.wfx.warungpos.core.common.VoidReason
 class Converters {
     @TypeConverter fun fromSyncStatus(v: SyncStatus): String = v.name
     @TypeConverter fun toSyncStatus(v: String): SyncStatus = SyncStatus.valueOf(v)
-
-    @TypeConverter fun fromBillType(v: BillType): String = v.name
-    @TypeConverter fun toBillType(v: String): BillType = BillType.valueOf(v)
 
     @TypeConverter fun fromBillStatus(v: BillStatus): String = v.name
     @TypeConverter fun toBillStatus(v: String): BillStatus = BillStatus.valueOf(v)

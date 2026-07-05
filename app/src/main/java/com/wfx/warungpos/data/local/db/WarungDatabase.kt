@@ -14,7 +14,6 @@ import com.wfx.warungpos.data.local.dao.ReportQueryDao
 import com.wfx.warungpos.data.local.dao.ShiftDao
 import com.wfx.warungpos.data.local.dao.StockDao
 import com.wfx.warungpos.data.local.dao.StockOpnameDao
-import com.wfx.warungpos.data.local.dao.TableDao
 import com.wfx.warungpos.data.local.dao.VariantDao
 import com.wfx.warungpos.data.local.dao.ZReportDao
 import com.wfx.warungpos.data.local.entity.BillEntity
@@ -30,7 +29,6 @@ import com.wfx.warungpos.data.local.entity.StockBatchEntity
 import com.wfx.warungpos.data.local.entity.StockItemEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameLineEntity
-import com.wfx.warungpos.data.local.entity.TableEntity
 import com.wfx.warungpos.data.local.entity.VariantGroupEntity
 import com.wfx.warungpos.data.local.entity.VariantOptionEntity
 import com.wfx.warungpos.data.local.entity.ZReportEntity
@@ -41,7 +39,6 @@ import com.wfx.warungpos.data.local.entity.ZReportEntity
         MenuItemEntity::class,
         VariantGroupEntity::class,
         VariantOptionEntity::class,
-        TableEntity::class,
         ShiftEntity::class,
         BillEntity::class,
         OrderItemEntity::class,
@@ -55,7 +52,7 @@ import com.wfx.warungpos.data.local.entity.ZReportEntity
         StockOpnameEntity::class,
         StockOpnameLineEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -63,7 +60,6 @@ abstract class WarungDatabase : RoomDatabase() {
     abstract fun menuCategoryDao(): MenuCategoryDao
     abstract fun menuItemDao(): MenuItemDao
     abstract fun variantDao(): VariantDao
-    abstract fun tableDao(): TableDao
     abstract fun shiftDao(): ShiftDao
     abstract fun billDao(): BillDao
     abstract fun orderItemDao(): OrderItemDao

@@ -27,6 +27,15 @@
 
 ---
 
+## Amendment Log
+
+| # | Date | Change | Supersedes |
+|---|------|--------|------------|
+| AM-1 | 2026-07-04 | **Shift → Day model.** There is no manual "shift" concept. Operation is tracked as Day 1, Day 2, Day 3, etc. A day auto-opens with no input (no opening float prompt) and stays open until either (a) the owner manually closes it via a button in Settings, or (b) the calendar day changes, in which case the app auto-closes the previous day (generates its Z-report automatically, no counted-cash/variance step since no one manually counted) and auto-opens the next day. | FR-SHIFT-1, FR-SHIFT-1a (opening float removed), "Shift & Cash Drawer" user stories |
+| AM-2 | 2026-07-04 | **No table numbers / no open bills.** Every order is pay-first, hand-over-food-after — like a fast food counter. Remove dine-in tables, the Tables tab, Table Settings, `OPEN_BILL` type, and the "select table / existing bill" destination options. Only one order flow remains: create order → pay → done. | FR-TABLE (all), FR-BILL-1/3/4, FR-ORDER destination selection, "Hybrid dine-in + grab-and-go" store profile line |
+
+---
+
 ## 1. Product Overview
 
 **Product name:** Warung POS (working title)  
@@ -34,10 +43,10 @@
 **Purpose:** A fully offline-capable point-of-sale system for a small Indonesian food stall (warung), replacing paper-based ordering and cash management with a digitized, multi-device workflow.
 
 **Store profile:**
-- Hybrid dine-in (tables, auto-labelled) + grab-and-go
+- Counter service only (no dine-in tables) — customer pays first, food is prepared/handed over after, like a fast food chain. See AM-2.
 - 2 operators — both handle cashiering and cooking simultaneously
 - 1–3 Android devices, portrait orientation
-- Default billing: pay upfront. Alternative: open bill (pay after eating)
+- Billing: always pay upfront, no open/running tab
 - No receipt printer
 - Payment methods: cash, QRIS (static sticker), GoPay, OVO, bank transfer — all configurable
 - Bills are daily — always closed within the same operating day
@@ -106,11 +115,8 @@
 - As an operator, I see the running total update in real time as I add or remove items.
 - As an operator, I mark an item as sold out with one tap so it appears greyed out and cannot be ordered.
 
-### Bill Management
-- As an operator, I assign a new order to a table (dine-in) or skip table selection (grab-and-go).
-- As an operator, I open a second bill on a table that already has an active bill, so two separate groups can pay independently.
-- As an operator, I open the bills list and see all open bills across all tables at a glance.
-- As an operator, I add more items to an existing open bill at any time before payment.
+### Bill Management (AM-2: no tables, pay-first only)
+- As an operator, I create a new bill, add items, and go straight to payment — there is no table selection and no open/running tab.
 - As an operator, each new bill gets an auto-incremented label (Bill #1, Bill #2) so I can tell them apart without naming them.
 
 ### Payment
@@ -121,7 +127,7 @@
 ### Void & Cancel
 - As an operator, I remove an item from an open bill and must select a reason (Customer Change / Kitchen Error / Item Unavailable / Test / Other).
 - As an owner, I void an entire paid or open bill with a mandatory reason, leaving an immutable audit record.
-- As an owner, I see all voids for the shift in the Z-report at close.
+- As an owner, I see all voids for the day in the Z-report at close.
 
 ### Stock Management
 - As an owner, I record incoming stock (ingredient, quantity, unit, purchase price, date) to establish a cost basis.
@@ -130,11 +136,12 @@
 - As an owner, I start a stock opname session, count each item, and submit to reconcile system vs physical count.
 - As an owner, I categorize each variance (spoilage / loss / theft / counting error) so I understand where stock disappears.
 
-### Shift & Cash Drawer
-- As an owner, I open a shift by entering the starting cash float.
-- As an owner, I cannot close a shift while any bills are still open — the app shows me which bills are blocking.
-- As an owner, I close a shift by entering the counted cash; the app shows me the expected vs counted variance.
-- As an owner, I view the Z-report for any past closed shift.
+### Day & Cash Drawer (AM-1: Shift renamed to Day, no manual open)
+- As an owner, a new day opens automatically with no input — no operator name, no opening float prompt.
+- As an owner, I cannot close a day while any bills are still open — the app shows me which bills are blocking.
+- As an owner, I manually close the current day at any time via a button in Settings by entering the counted cash; the app shows me the expected vs counted variance.
+- As an owner, if I never manually close and the calendar day rolls over, the app auto-closes the previous day (Z-report generated automatically, no counted-cash step) and auto-opens the next day.
+- As an owner, I view the Z-report for any past closed day.
 
 ### Expenses
 - As any operator, I log an operational expense with category, amount, and optional note.
@@ -202,12 +209,9 @@
 
 **FR-ORDER-6:** The +/- buttons adjust quantity; pressing − on quantity 1 removes the item from the cart.
 
-**FR-ORDER-7:** Before confirming the order, the operator selects a destination:
-- New grab-and-go bill (no table, always UPFRONT type) → goes straight to payment
-- New bill on a table (operator selects from table list, then selects UPFRONT or OPEN_BILL type)
-- Add to existing open bill on a table (operator selects bill from list)
+**FR-ORDER-7 (superseded by AM-2):** Confirming an order always creates a new bill and goes straight to payment. There is no destination selection — no table, no "existing open bill" option.
 
-**FR-ORDER-8:** Grab-and-go orders skip table selection and go directly to payment after confirmation.
+**FR-ORDER-8 (superseded by AM-2):** All orders skip table selection and go directly to payment after confirmation.
 
 **FR-ORDER-9:** Confirming the order writes OrderItems to Room immediately (optimistic). The UI never waits for RTDB sync.
 
@@ -215,13 +219,13 @@
 
 ### FR-BILL: Bill Management
 
-**FR-BILL-1:** Bill types: `UPFRONT` (pay before food is prepared) and `OPEN_BILL` (pay after). Operator selects at bill creation for dine-in. Grab-and-go is always `UPFRONT`.
+**FR-BILL-1 (superseded by AM-2):** All bills are `UPFRONT` (pay before food is prepared). `OPEN_BILL` type is removed — there is no pay-after-eating flow.
 
 **FR-BILL-2:** Bill status: `OPEN` → `PAID` or `VOID`. Status only ever moves forward. A paid bill cannot be re-opened — only voided (which creates an audit record) and replaced with a new bill if needed.
 
-**FR-BILL-3:** Multiple bills can be simultaneously `OPEN` on the same table. Each is independent with its own items and payment.
+**FR-BILL-3 (removed by AM-2):** No table concept, so no multiple-bills-per-table.
 
-**FR-BILL-4:** Each new bill on a table gets an auto-incremented session label: "Bill #1", "Bill #2", etc. Labels reset at app startup or shift open.
+**FR-BILL-4:** Each new bill gets an auto-incremented session label: "Bill #1", "Bill #2", etc. Labels reset at app startup or day open.
 
 **FR-BILL-5:** An OPEN bill can receive additional OrderItems at any time before payment (append-only inserts — safe for concurrent writes from two devices).
 
@@ -229,7 +233,7 @@
 
 **FR-BILL-7:** Bills open for more than 12 hours trigger a soft warning on the open bills list (orange indicator). No hard block.
 
-**FR-BILL-8:** Bills are daily. There are no cross-day bills. If a bill is somehow left open at end of day, it must be manually closed or voided before the next shift can be opened.
+**FR-BILL-8:** Bills are daily. There are no cross-day bills. If a bill is somehow left open at end of day, it must be manually closed or voided before the next day can close.
 
 ---
 
@@ -257,7 +261,7 @@
 
 **FR-VOID-3:** Voiding an entire bill is owner-only. Records: operator, timestamp, reason, total voided value. Voided bills remain in history.
 
-**FR-VOID-4:** Shift Z-report includes: total void count, total voided value, breakdown by void reason.
+**FR-VOID-4:** Day's Z-report includes: total void count, total voided value, breakdown by void reason.
 
 ---
 
@@ -279,13 +283,9 @@
 
 ---
 
-### FR-TABLE: Table Management
+### FR-TABLE: Table Management — REMOVED (AM-2)
 
-**FR-TABLE-1:** Tables are created in Settings with an optional free-text label (e.g., "Meja 1", "Pojok Kiri"). Label can be blank.
-
-**FR-TABLE-2:** Tables can be deactivated. Deactivated tables no longer appear in the "select table" flow. Existing open bills on a deactivated table remain accessible.
-
-**FR-TABLE-3:** Tables overview screen shows each active table with: label (or "Meja"), number of open bills, total owed across all open bills.
+Table management, the Tables tab, and Table Settings no longer exist. Every order is counter-service pay-first. This section (formerly FR-TABLE-1/2/3) is retained here only as a historical marker.
 
 ---
 
@@ -335,22 +335,24 @@
 
 ---
 
-### FR-SHIFT: Shift Management
+### FR-DAY: Day Management (formerly FR-SHIFT, renamed and changed by AM-1)
 
-**FR-SHIFT-1:** A shift must be opened before any orders can be taken. Opening requires: operator name, opening cash float (`Long`).
+**FR-DAY-1:** There is no manual "open" action. A Day auto-starts with no input — no operator name, no opening cash float. `openingFloat` defaults to `0`.
 
-**FR-SHIFT-1a:** When opening a shift, if any menu items have `isSoldOut = true`, the shift-open screen must display a prompt: **"Reset all sold-out items?"** with Yes / No options. If Yes, all `isSoldOut` flags are set to `false` before the shift opens. This prevents the common daily mistake of forgetting to manually re-enable items from the previous day. The operator can still choose No and reset individually later.
+**FR-DAY-1a:** When a new Day starts (manual close or auto-rollover), if any menu items have `isSoldOut = true`, prompt: **"Reset all sold-out items?"** with Yes / No options. If Yes, all `isSoldOut` flags are set to `false`. The operator can still choose No and reset individually later.
 
-**FR-SHIFT-2:** Only one shift can be OPEN at a time across all devices.
+**FR-DAY-2:** Only one Day can be OPEN at a time across all devices.
 
-**FR-SHIFT-3:** Shift close is owner-only. Pre-condition: zero OPEN bills. If open bills exist, the shift close screen shows a blocking list — owner must close or void all bills first.
+**FR-DAY-3:** Manual close is owner-only, triggered by a button in Settings. Pre-condition: zero OPEN bills. If open bills exist, the close screen shows a blocking list — owner must close or void all bills first.
 
-**FR-SHIFT-4:** Shift close inputs: counted physical cash. The app computes:
-- `expectedCash = openingFloat + Σ(cash payments in shift) − Σ(cash expenses in shift)`
+**FR-DAY-4:** Manual close inputs: counted physical cash. The app computes:
+- `expectedCash = openingFloat + Σ(cash payments in day) − Σ(cash expenses in day)`
 - `cashVariance = countedCash − expectedCash`
 
-**FR-SHIFT-5:** On submit, an immutable Z-report snapshot is created containing:
-- Date, shift open/close time, opened by
+**FR-DAY-4a (new, AM-1):** Auto-close on calendar day rollover: if the Day is still OPEN when the date changes, the app automatically closes it and opens the next Day. Auto-close skips the counted-cash step entirely — `countedCash = expectedCash` and `cashVariance = 0` in the generated Z-report, since no one manually counted. This auto-close still requires zero OPEN bills; if bills are open at rollover, the previous Day stays open until an owner manually resolves it (same blocking behavior as FR-DAY-3).
+
+**FR-DAY-5:** On close (manual or auto), an immutable Z-report snapshot is created containing:
+- Date, day open/close time, opened by (if manually reopened by an owner action), closed by (owner, or "system" for auto-close)
 - Gross sales (all payment methods combined)
 - Sales breakdown by payment method
 - Total voids: count, value, reason breakdown
@@ -359,9 +361,9 @@
 - Gross profit (sales − COGS, only if recipes configured)
 - Net (gross profit − expenses)
 
-**FR-SHIFT-6:** Closed shifts and their Z-reports are permanently immutable. No reopening. Errors discovered post-close are noted manually outside the app.
+**FR-DAY-6:** Closed Days and their Z-reports are permanently immutable. No reopening. Errors discovered post-close are noted manually outside the app.
 
-**FR-SHIFT-7:** Bills are always attributed to the shift in which they were PAID (not opened).
+**FR-DAY-7:** Bills are always attributed to the Day in which they were PAID (not opened).
 
 ---
 
@@ -457,19 +459,16 @@ MVP enables a complete real service day: **open shift → take orders → proces
 | Firebase Auth (2 users, role claims) | Claims set via Firebase Console once |
 | Bilingual UI (Bahasa Indonesia + English) | Language toggle in Settings |
 | Menu management (items, categories, variants, no images) | |
-| Table management (create, label, deactivate) | |
-| Order-taking screen — item grid, variant sheet, tap +/- quantity | Launch destination |
-| All 3 bill flows (grab-and-go upfront, dine-in upfront, dine-in open bill) | |
-| Multiple bills per table (auto-labelled Bill #N) | |
-| Add items to existing open bill | |
+| Order-taking screen — item grid, variant sheet, tap +/- quantity | Launch destination; no table selection (AM-2) |
+| Single bill flow: pay-first, no tables, no open bill (AM-2) | |
 | Sold-out toggle (manual reset) | |
 | Configurable payment methods (toggle, reorder) | |
 | Cash payment + change calculator | |
 | Split payment (multi-method per bill) | |
 | Void order item with reason (owner + staff, always logged) | |
 | Void entire bill (owner only) | |
-| Shift open (with opening float) | |
-| Shift close — blocks on open bills, Z-report snapshot | |
+| Day auto-open, no opening float input (AM-1) | |
+| Day close — manual (Settings button) or automatic on date rollover; blocks on open bills, Z-report snapshot | |
 | Expense logging (all operators) | |
 | Daily revenue dashboard (owner only) | |
 | Open bills overview screen | |
@@ -586,10 +585,10 @@ MenuItem          id, categoryId(FK), name, basePrice(Long), isAvailable, isSold
 VariantGroup      id, menuItemId(FK), name, selectionType(SINGLE|MULTIPLE), isRequired + sync
 VariantOption     id, variantGroupId(FK), name, priceDelta(Long) + sync
 
-Table             id, label(nullable), isActive + sync
-Bill              id, tableId(FK nullable), type(UPFRONT|OPEN_BILL), status(OPEN|PAID|VOID),
+Table             REMOVED (AM-2) — no table concept
+Bill              id, type(UPFRONT only, AM-2), status(OPEN|PAID|VOID),
                   sessionLabel(e.g. "Bill #3"), createdAt, paidAt(nullable), subtotal(Long),
-                  discountTotal(Long), grandTotal(Long), note(nullable), shiftId(FK nullable),
+                  discountTotal(Long), grandTotal(Long), note(nullable), dayId(FK nullable, formerly shiftId),
                   voidReason(nullable), voidedBy(nullable) + sync
 OrderItem         id, billId(FK), menuItemId(FK), nameSnapshot, priceSnapshot(Long),
                   quantity, selectedVariantsJson, lineTotal(Long),
@@ -612,10 +611,12 @@ StockOpnameLine   id, opnameId(FK), stockItemId(FK), expectedQty(Double), actual
 
 Expense           id, category, amount(Long), date, note(nullable), recordedBy + sync
 
-Shift             id, openedAt, closedAt(nullable), openedBy, openingFloat(Long),
-                  countedCash(Long nullable), expectedCash(Long), variance(Long nullable),
-                  status(OPEN|CLOSED) + sync
-ZReport           id, shiftId(FK), snapshotJson(String) -- immutable after write, no sync updates
+Day (formerly Shift, AM-1)
+                  id, openedAt(auto, no input), closedAt(nullable), closedBy(owner or "system" for auto-close),
+                  openingFloat(Long, always 0 — no manual entry), countedCash(Long nullable, null if auto-closed),
+                  expectedCash(Long), variance(Long nullable, 0 if auto-closed),
+                  closeType(MANUAL|AUTO_ROLLOVER), status(OPEN|CLOSED) + sync
+ZReport           id, dayId(FK, formerly shiftId), snapshotJson(String) -- immutable after write, no sync updates
 ```
 
 ---
@@ -623,27 +624,23 @@ ZReport           id, shiftId(FK), snapshotJson(String) -- immutable after write
 ## Appendix B: Navigation Structure (for Claude Code)
 
 ```
-Bottom Nav (4 items):
+Bottom Nav (3 items — Tables removed, AM-2):
 ├── 🧾 Order       ← DEFAULT launch destination
-├── 🪑 Tables      ← all open bills grouped by table
 ├── 📊 Reports     ← owner only (role-gated)
 └── ☰  More
-    ├── Shift Management (open / close / history)
+    ├── Day Management (manual close button / history) — no manual "open" (AM-1)
     ├── Expense Log
     ├── Stock (Phase 2)
     ├── Stock Opname (Phase 2)
     ├── Menu Management
-    ├── Table Settings
     ├── Payment Method Settings
     └── App Settings
          ├── Language (Bahasa Indonesia / English)
          ├── Expense Categories
          └── About / Version
 
-Order flow (most optimised path):
-  Item Grid → [Variant Sheet if needed] → Confirm Order →
-  [Select Destination: grab-and-go / table / existing bill] →
-  [Payment Screen if grab-and-go] → Done
+Order flow (AM-2: single flow, no destination selection):
+  Item Grid → [Variant Sheet if needed] → Confirm Order → Payment Screen → Done
 ```
 
 ---
@@ -652,15 +649,14 @@ Order flow (most optimised path):
 
 ```
 /appConfig/minVersionCode: Int          ← version gate
-/appConfig/openShiftId: String | null   ← enforces single open shift
+/appConfig/openDayId: String | null     ← enforces single open day (formerly openShiftId)
 
 /menuCategories/{id}/...
 /menuItems/{id}/...
 /variantGroups/{id}/...
 /variantOptions/{id}/...
 
-/tables/{id}/...
-/bills/{id}/...
+/bills/{id}/...                        ← no /tables node (AM-2)
 /orderItems/{id}/...
 /payments/{id}/...
 /paymentMethods/{id}/...
@@ -672,17 +668,18 @@ Order flow (most optimised path):
 /opnames/{id}/...
 /opnameLines/{id}/...
 /expenses/{id}/...
-/shifts/{id}/...
+/days/{id}/...                         ← formerly /shifts
 
 -- Index nodes for efficient lookups --
-/openBillsByTable/{tableId}/{billId}: true
-/billsByShift/{shiftId}/{billId}: true
+/billsByDay/{dayId}/{billId}: true      ← formerly billsByShift
 /pendingStockDeductions/{opnameId}/{deductionId}: { stockItemId, qty }
 ```
 
 ---
 
 ## Appendix D: Build Checklist for Claude Code
+
+> **Note:** This checklist predates AM-1/AM-2 and reflects the original Shift/Table model. It is a historical build log (largely already completed); it is not being rewritten line-by-line. Treat FR-DAY and the removal of FR-TABLE (above) as authoritative over any Shift/Table wording still appearing in the checkboxes below.
 
 ### Phase 1 — Foundation
 - [ ] Confirm existing project min SDK, apply Gradle dependencies (Room, Hilt, Firebase RTDB, Firebase Auth, WorkManager, Compose Navigation)

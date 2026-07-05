@@ -14,9 +14,6 @@ class FakeBillRepository : BillRepository {
 
     override fun observeBillById(id: String): Flow<Bill?> = flowOf(bills[id])
 
-    override fun observeOpenBillForTable(tableId: String): Flow<Bill?> =
-        flowOf(bills.values.firstOrNull { it.tableId == tableId && it.status == BillStatus.OPEN })
-
     override fun observeBillsForShift(shiftId: String): Flow<List<Bill>> =
         flowOf(bills.values.filter { it.shiftId == shiftId })
 

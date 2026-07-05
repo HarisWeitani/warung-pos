@@ -33,9 +33,6 @@ class SyncWorker @AssistedInject constructor(
         db.variantDao().getPendingOptions().forEach { entity ->
             updates["/${RtdbPaths.VARIANT_OPTIONS}/${entity.id}"] = entity.toRtdbMap()
         }
-        db.tableDao().getPendingSync().forEach { entity ->
-            updates["/${RtdbPaths.TABLES}/${entity.id}"] = entity.toRtdbMap()
-        }
         db.shiftDao().getPendingSync().forEach { entity ->
             updates["/${RtdbPaths.SHIFTS}/${entity.id}"] = entity.toRtdbMap()
         }
@@ -76,9 +73,6 @@ class SyncWorker @AssistedInject constructor(
         }
         db.menuItemDao().getPendingSync().forEach { e ->
             db.menuItemDao().upsert(e.copy(syncStatus = synced))
-        }
-        db.tableDao().getPendingSync().forEach { e ->
-            db.tableDao().upsert(e.copy(syncStatus = synced))
         }
         db.shiftDao().getPendingSync().forEach { e ->
             db.shiftDao().upsert(e.copy(syncStatus = synced))

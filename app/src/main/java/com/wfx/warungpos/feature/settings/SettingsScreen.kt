@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.TableBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -32,7 +31,6 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onNavigateToTables: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToExpenseCategories: () -> Unit,
     onNavigateToLanguage: () -> Unit,
@@ -53,8 +51,6 @@ fun SettingsScreen(
         },
     ) { padding ->
         LazyColumn(contentPadding = padding) {
-            item { SettingsRow("Table Setup", Icons.Default.TableBar, onClick = onNavigateToTables) }
-            item { HorizontalDivider(modifier = Modifier.padding(start = 56.dp)) }
             item { SettingsRow("Payment Methods", Icons.Default.Payments, onClick = onNavigateToPaymentMethods) }
             item { HorizontalDivider(modifier = Modifier.padding(start = 56.dp)) }
             item { SettingsRow("Expense Categories", Icons.Default.Receipt, onClick = onNavigateToExpenseCategories) }

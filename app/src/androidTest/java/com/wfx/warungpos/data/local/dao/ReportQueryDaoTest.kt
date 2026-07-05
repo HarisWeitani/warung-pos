@@ -48,7 +48,7 @@ class ReportQueryDaoTest {
     }
 
     private fun bill(id: String, status: String, paidAt: Long?, grandTotal: Long) = BillEntity(
-        id = id, tableId = null, type = "UPFRONT", status = status, sessionLabel = "Counter",
+        id = id, status = status, sessionLabel = "Counter",
         createdAt = 0L, paidAt = paidAt, subtotal = grandTotal, discountTotal = 0L,
         grandTotal = grandTotal, note = null, shiftId = null, voidReason = null, voidedBy = null,
         updatedAt = 0L, syncStatus = "PENDING", deviceId = "dev-1",

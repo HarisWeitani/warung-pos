@@ -93,23 +93,6 @@ class RtdbListener @Inject constructor(
             }
         }
 
-        listenPath(RtdbPaths.TABLES) { event ->
-            when (event) {
-                is ChildEvent.Added, is ChildEvent.Changed -> {
-                    val incoming = event.snapshot.toTableEntity() ?: return@listenPath
-                    val existing = db.tableDao().getById(incoming.id)
-                    val resolution = conflictResolver.resolve(
-                        incomingUpdatedAt = incoming.updatedAt,
-                        existingUpdatedAt = existing?.updatedAt,
-                    )
-                    if (resolution == ConflictResolution.ACCEPT) {
-                        db.tableDao().upsert(incoming)
-                    }
-                }
-                is ChildEvent.Removed -> db.tableDao().deleteById(event.snapshot.key ?: return@listenPath)
-            }
-        }
-
         listenPath(RtdbPaths.SHIFTS) { event ->
             when (event) {
                 is ChildEvent.Added, is ChildEvent.Changed -> {

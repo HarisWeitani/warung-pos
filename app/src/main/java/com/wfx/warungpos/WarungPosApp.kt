@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
@@ -35,7 +34,6 @@ import com.wfx.warungpos.core.navigation.AppNavGraph
 import com.wfx.warungpos.core.navigation.MoreRoute
 import com.wfx.warungpos.core.navigation.OrderRoute
 import com.wfx.warungpos.core.navigation.ReportsRoute
-import com.wfx.warungpos.core.navigation.TablesRoute
 import com.wfx.warungpos.feature.auth.PinScreen
 import com.wfx.warungpos.feature.auth.PinViewModel
 import com.wfx.warungpos.feature.auth.UpdateRequiredScreen
@@ -43,7 +41,7 @@ import com.wfx.warungpos.feature.sync.SyncStatusBar
 import com.wfx.warungpos.ui.theme.WarungPosTheme
 import java.util.Locale
 
-private val bottomNavRoutes = listOf(OrderRoute, TablesRoute, ReportsRoute, MoreRoute)
+private val bottomNavRoutes = listOf(OrderRoute, ReportsRoute, MoreRoute)
 
 @Composable
 fun WarungPosApp(
@@ -127,7 +125,6 @@ private data class BottomNavItem(
 
 private val alwaysVisibleItems = listOf(
     BottomNavItem(R.string.nav_order, Icons.Default.ShoppingCart, OrderRoute),
-    BottomNavItem(R.string.nav_tables, Icons.Default.List, TablesRoute),
 )
 private val ownerOnlyItem =
     BottomNavItem(R.string.nav_reports, Icons.Default.BarChart, ReportsRoute)

@@ -49,7 +49,7 @@ fun ShiftCloseScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Close Shift") },
+                title = { Text("Close Day") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -105,7 +105,7 @@ fun ShiftCloseScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Shift Summary", style = MaterialTheme.typography.titleMedium)
+                        Text("Day Summary", style = MaterialTheme.typography.titleMedium)
                         SummaryRow(label = "Total Revenue", value = CurrencyFormatter.format(state.totalRevenue))
                         SummaryRow(label = "Total Expenses", value = CurrencyFormatter.format(state.totalExpenses))
                         HorizontalDivider()
@@ -156,7 +156,7 @@ fun ShiftCloseScreen(
                             color = MaterialTheme.colorScheme.onError,
                         )
                     } else {
-                        Text("Close Shift")
+                        Text("Close Day")
                     }
                 }
             }

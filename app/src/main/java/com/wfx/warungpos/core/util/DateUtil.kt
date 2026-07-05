@@ -14,14 +14,19 @@ object DateUtil {
     private val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+    // LocalDate.ofInstant(Instant, ZoneId) only exists from API 34; minSdk here is 26, so we
+    // derive the LocalDate via LocalDateTime.ofInstant instead, which has been available since 26.
+    private fun localDateOf(epochMs: Long): LocalDate =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), WIB).toLocalDate()
+
     fun startOfDay(epochMs: Long): Long =
-        LocalDate.ofInstant(Instant.ofEpochMilli(epochMs), WIB)
+        localDateOf(epochMs)
             .atStartOfDay(WIB)
             .toInstant()
             .toEpochMilli()
 
     fun endOfDay(epochMs: Long): Long =
-        LocalDate.ofInstant(Instant.ofEpochMilli(epochMs), WIB)
+        localDateOf(epochMs)
             .plusDays(1)
             .atStartOfDay(WIB)
             .toInstant()
@@ -31,7 +36,7 @@ object DateUtil {
         LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), WIB).format(displayFormatter)
 
     fun toDisplayDate(epochMs: Long): String =
-        LocalDate.ofInstant(Instant.ofEpochMilli(epochMs), WIB).format(dateFormatter)
+        localDateOf(epochMs).format(dateFormatter)
 
     fun toDisplayTime(epochMs: Long): String =
         LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), WIB).format(timeFormatter)

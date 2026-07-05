@@ -48,7 +48,7 @@ class PaymentTransactionAtomicityTest {
     }
 
     private fun openBill() = BillEntity(
-        id = "bill-1", tableId = null, type = "UPFRONT", status = "OPEN", sessionLabel = "Counter",
+        id = "bill-1", status = "OPEN", sessionLabel = "Counter",
         createdAt = 0L, paidAt = null, subtotal = 45_000L, discountTotal = 0L, grandTotal = 45_000L,
         note = null, shiftId = null, voidReason = null, voidedBy = null,
         updatedAt = 0L, syncStatus = "PENDING", deviceId = "dev-1",

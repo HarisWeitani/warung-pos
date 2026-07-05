@@ -27,9 +27,6 @@ class BillRepositoryImpl @Inject constructor(
     override fun observeBillById(id: String): Flow<Bill?> =
         billDao.observeById(id).map { it?.toDomain() }
 
-    override fun observeOpenBillForTable(tableId: String): Flow<Bill?> =
-        billDao.observeOpenBillForTable(tableId).map { it?.toDomain() }
-
     override fun observeBillsForShift(shiftId: String): Flow<List<Bill>> =
         billDao.observeBillsForShift(shiftId).map { it.map { e -> e.toDomain() } }
 

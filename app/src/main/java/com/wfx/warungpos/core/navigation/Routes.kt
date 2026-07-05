@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 // ── Top-level destinations (bottom nav) ──────────────────────────────────────
 @Serializable data object OrderRoute
-@Serializable data object TablesRoute
 @Serializable data object ReportsRoute   // owner-only
 @Serializable data object MoreRoute
 @Serializable data object DashboardRoute // owner-only
@@ -16,7 +15,6 @@ import kotlinx.serialization.Serializable
 @Serializable data object UpdateRequiredRoute
 
 // ── Shift ────────────────────────────────────────────────────────────────────
-@Serializable data object ShiftOpenRoute
 @Serializable data object ShiftCloseRoute
 @Serializable data class ZReportRoute(val shiftId: String)
 @Serializable data object ShiftHistoryRoute
@@ -34,7 +32,6 @@ import kotlinx.serialization.Serializable
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 @Serializable data object SettingsRoute
-@Serializable data object TableSettingsRoute
 @Serializable data object PaymentMethodSettingsRoute
 @Serializable data object ExpenseCategorySettingsRoute
 @Serializable data object LanguageSettingsRoute

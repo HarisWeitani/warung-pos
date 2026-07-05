@@ -14,9 +14,6 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE status = 'OPEN' ORDER BY createdAt DESC")
     fun observeOpenBills(): Flow<List<BillEntity>>
 
-    @Query("SELECT * FROM bills WHERE tableId = :tableId AND status = 'OPEN' LIMIT 1")
-    fun observeOpenBillForTable(tableId: String): Flow<BillEntity?>
-
     @Query("SELECT * FROM bills WHERE shiftId = :shiftId ORDER BY createdAt DESC")
     fun observeBillsForShift(shiftId: String): Flow<List<BillEntity>>
 

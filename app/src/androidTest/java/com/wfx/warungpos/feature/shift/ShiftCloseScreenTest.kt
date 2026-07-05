@@ -8,7 +8,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.ShiftStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.domain.model.Bill
@@ -36,7 +35,7 @@ class ShiftCloseScreenTest {
     )
 
     private val openBill = Bill(
-        id = "bill-1", tableId = null, type = BillType.UPFRONT, status = BillStatus.OPEN,
+        id = "bill-1", status = BillStatus.OPEN,
         sessionLabel = "Meja 1", createdAt = 0L, paidAt = null, subtotal = 25_000L,
         discountTotal = 0L, grandTotal = 25_000L, note = null, shiftId = "shift-1",
         voidReason = null, voidedBy = null, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
@@ -52,7 +51,7 @@ class ShiftCloseScreenTest {
         }
         composeTestRule.onNodeWithText("Cannot close: 1 open bill(s)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Meja 1", substring = true).assertIsDisplayed()
-        composeTestRule.onNode(hasText("Close Shift") and hasClickAction()).assertIsNotEnabled()
+        composeTestRule.onNode(hasText("Close Day") and hasClickAction()).assertIsNotEnabled()
     }
 
     @Test
@@ -63,6 +62,6 @@ class ShiftCloseScreenTest {
                 ShiftCloseScreen(state = state, onFloatChange = {}, onCloseShift = {}, onBack = {})
             }
         }
-        composeTestRule.onNode(hasText("Close Shift") and hasClickAction()).assertIsEnabled()
+        composeTestRule.onNode(hasText("Close Day") and hasClickAction()).assertIsEnabled()
     }
 }

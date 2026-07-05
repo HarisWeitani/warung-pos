@@ -1,7 +1,6 @@
 package com.wfx.warungpos.domain.usecase.bill
 
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.UserRole
 import com.wfx.warungpos.domain.exception.BillNotVoidableException
@@ -21,7 +20,7 @@ class VoidBillUseCaseTest {
     private lateinit var useCase: VoidBillUseCase
 
     private val openBill = Bill(
-        id = "bill-1", tableId = null, type = BillType.UPFRONT, status = BillStatus.OPEN,
+        id = "bill-1", status = BillStatus.OPEN,
         sessionLabel = "Counter", createdAt = 0L, paidAt = null, subtotal = 10_000L,
         discountTotal = 0L, grandTotal = 10_000L, note = null, shiftId = "shift-1",
         voidReason = null, voidedBy = null, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",

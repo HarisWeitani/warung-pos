@@ -41,7 +41,7 @@ fun ShiftHistoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Shift History") },
+                title = { Text("Day History") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -60,7 +60,7 @@ fun ShiftHistoryScreen(
         if (state.items.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text(
-                    "No closed shifts yet",
+                    "No closed days yet",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

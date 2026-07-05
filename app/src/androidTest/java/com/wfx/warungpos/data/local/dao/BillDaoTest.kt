@@ -7,7 +7,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.wfx.warungpos.data.local.db.WarungDatabase
 import com.wfx.warungpos.data.local.entity.BillEntity
-import com.wfx.warungpos.data.local.entity.TableEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -42,12 +41,11 @@ class BillDaoTest {
     private fun bill(
         id: String,
         status: String = "OPEN",
-        tableId: String? = null,
         createdAt: Long = 0L,
         paidAt: Long? = null,
         grandTotal: Long = 10_000L,
     ) = BillEntity(
-        id = id, tableId = tableId, type = "UPFRONT", status = status, sessionLabel = "Counter",
+        id = id, status = status, sessionLabel = "Counter",
         createdAt = createdAt, paidAt = paidAt, subtotal = grandTotal, discountTotal = 0L,
         grandTotal = grandTotal, note = null, shiftId = null, voidReason = null, voidedBy = null,
         updatedAt = createdAt, syncStatus = "PENDING", deviceId = "dev-1",
@@ -68,17 +66,6 @@ class BillDaoTest {
 
         dao.upsert(bill("bill-1", status = "PAID", paidAt = 1_000L))
         assertTrue(dao.observeOpenBills().first().isEmpty())
-    }
-
-    @Test
-    fun observeOpenBillForTable_returnsBillForThatTable() = runTest {
-        db.tableDao().upsert(
-            TableEntity(id = "table-1", label = "Table 1", isActive = true, updatedAt = 0L, syncStatus = "SYNCED", deviceId = "dev-1")
-        )
-        dao.upsert(bill("bill-1", status = "OPEN", tableId = "table-1"))
-        val result = dao.observeOpenBillForTable("table-1").first()
-        assertNotNull(result)
-        assertEquals("bill-1", result!!.id)
     }
 
     @Test

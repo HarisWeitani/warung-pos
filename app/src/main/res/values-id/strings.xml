@@ -3,7 +3,6 @@
 
     <!-- Bottom navigation -->
     <string name="nav_order">Order</string>
-    <string name="nav_tables">Meja</string>
     <string name="nav_reports">Laporan</string>
     <string name="nav_more">Lainnya</string>
 
@@ -45,7 +44,6 @@
 
     <!-- Settings -->
     <string name="settings_language">Bahasa</string>
-    <string name="settings_tables">Pengaturan Meja</string>
     <string name="settings_payment_methods">Metode Pembayaran</string>
     <string name="settings_about">Tentang Aplikasi</string>
 

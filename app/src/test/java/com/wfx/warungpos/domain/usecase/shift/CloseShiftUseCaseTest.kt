@@ -1,7 +1,6 @@
 package com.wfx.warungpos.domain.usecase.shift
 
 import com.wfx.warungpos.core.common.BillStatus
-import com.wfx.warungpos.core.common.BillType
 import com.wfx.warungpos.core.common.ShiftStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.UserRole
@@ -62,7 +61,7 @@ class CloseShiftUseCaseTest {
     @Test
     fun `open bills block shift close with correct bill list`() = runTest {
         val openBill = Bill(
-            id = "bill-1", tableId = null, type = BillType.UPFRONT, status = BillStatus.OPEN,
+            id = "bill-1", status = BillStatus.OPEN,
             sessionLabel = "Counter", createdAt = 0L, paidAt = null, subtotal = 0L, discountTotal = 0L,
             grandTotal = 0L, note = null, shiftId = openShift.id, voidReason = null, voidedBy = null,
             updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
