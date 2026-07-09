@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -103,6 +104,9 @@ private fun MainApp(userRole: UserRole) {
     val showBottomNav = bottomNavRoutes.any { currentDestination?.hasRoute(it::class) == true }
 
     Scaffold(
+        // Each screen under AppNavGraph owns its own Scaffold/TopAppBar and already
+        // handles the status bar inset; consuming it here too would double the top gap.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomNav) {
                 WarungBottomNav(navController = navController, userRole = userRole)
