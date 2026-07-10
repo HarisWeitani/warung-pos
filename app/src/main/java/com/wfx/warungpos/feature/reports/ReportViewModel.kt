@@ -7,6 +7,7 @@ import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.domain.model.ReportData
 import com.wfx.warungpos.domain.usecase.report.ExportReportUseCase
 import com.wfx.warungpos.domain.usecase.report.GetReportDataUseCase
+import com.wfx.warungpos.domain.usecase.report.ReportExportFormat
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class DateRangeMode { DAY, WEEK, MONTH, CUSTOM }
+
+data class ReportShareEvent(val uri: Uri, val mimeType: String)
 
 data class ReportUiState(
     val mode: DateRangeMode = DateRangeMode.DAY,
@@ -37,8 +40,8 @@ class ReportViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ReportUiState())
     val uiState: StateFlow<ReportUiState> = _uiState.asStateFlow()
 
-    private val _shareEvent = Channel<Uri>(Channel.BUFFERED)
-    val shareEvent: Flow<Uri> = _shareEvent.receiveAsFlow()
+    private val _shareEvent = Channel<ReportShareEvent>(Channel.BUFFERED)
+    val shareEvent: Flow<ReportShareEvent> = _shareEvent.receiveAsFlow()
 
     init {
         load()
@@ -83,11 +86,11 @@ class ReportViewModel @Inject constructor(
         }
     }
 
-    fun share() {
+    fun share(format: ReportExportFormat) {
         val data = _uiState.value.reportData ?: return
         viewModelScope.launch {
-            val uri = exportReportUseCase(data, _uiState.value.mode.name)
-            _shareEvent.send(uri)
+            val uri = exportReportUseCase(data, _uiState.value.mode.name, format)
+            _shareEvent.send(ReportShareEvent(uri, format.mimeType))
         }
     }
 }

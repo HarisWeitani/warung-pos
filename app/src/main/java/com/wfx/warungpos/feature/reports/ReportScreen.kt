@@ -1,7 +1,6 @@
 package com.wfx.warungpos.feature.reports
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +18,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -42,27 +43,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wfx.warungpos.core.util.CurrencyFormatter
+import com.wfx.warungpos.domain.usecase.report.ReportExportFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
     state: ReportUiState,
-    shareEvent: kotlinx.coroutines.flow.Flow<Uri>,
+    shareEvent: kotlinx.coroutines.flow.Flow<ReportShareEvent>,
     onSelectMode: (DateRangeMode) -> Unit,
     onSelectCustomRange: (Long, Long) -> Unit,
-    onShare: () -> Unit,
+    onShare: (ReportExportFormat) -> Unit,
     onNavigateToBestSellers: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var showDateRangePicker by remember { mutableStateOf(false) }
+    var showExportMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        shareEvent.collect { uri ->
+        shareEvent.collect { event ->
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
-                putExtra(Intent.EXTRA_STREAM, uri)
+                type = event.mimeType
+                putExtra(Intent.EXTRA_STREAM, event.uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(intent, "Share Report"))
@@ -100,8 +103,18 @@ fun ReportScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onShare, enabled = state.reportData != null) {
+                    IconButton(onClick = { showExportMenu = true }, enabled = state.reportData != null) {
                         Icon(Icons.Default.Share, contentDescription = "Bagikan / Share")
+                    }
+                    DropdownMenu(expanded = showExportMenu, onDismissRequest = { showExportMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Export as CSV") },
+                            onClick = { showExportMenu = false; onShare(ReportExportFormat.CSV) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Export as PDF") },
+                            onClick = { showExportMenu = false; onShare(ReportExportFormat.PDF) },
+                        )
                     }
                 },
             )
