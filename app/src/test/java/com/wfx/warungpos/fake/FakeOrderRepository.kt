@@ -25,4 +25,11 @@ class FakeOrderRepository : OrderRepository {
     override suspend fun voidItem(id: String, reason: VoidReason, voidedBy: String) {
         items[id]?.let { items[id] = it.copy(status = OrderItemStatus.VOID, voidReason = reason, voidedBy = voidedBy) }
     }
+
+    override fun observeQueue(): Flow<List<OrderItem>> =
+        flowOf(items.values.filter { it.status == OrderItemStatus.ORDERED }.sortedBy { it.createdAt })
+
+    override suspend fun markItemDone(id: String) {
+        items[id]?.let { items[id] = it.copy(status = OrderItemStatus.DONE) }
+    }
 }

@@ -20,6 +20,14 @@ interface OrderItemDao {
     @Query("SELECT * FROM order_items WHERE billId = :billId AND status != 'VOID'")
     suspend fun getActiveForBill(billId: String): List<OrderItemEntity>
 
+    @Query("""
+        SELECT oi.* FROM order_items oi
+        INNER JOIN bills b ON oi.billId = b.id
+        WHERE b.status = 'OPEN' AND oi.status = 'ORDERED'
+        ORDER BY oi.createdAt ASC
+    """)
+    fun observeQueue(): Flow<List<OrderItemEntity>>
+
     @Query("SELECT * FROM order_items WHERE id = :id")
     suspend fun getById(id: String): OrderItemEntity?
 
@@ -33,4 +41,7 @@ interface OrderItemDao {
         WHERE id = :id
     """)
     suspend fun voidItem(id: String, reason: String, voidedBy: String, updatedAt: Long)
+
+    @Query("UPDATE order_items SET status = 'DONE', updatedAt = :updatedAt, syncStatus = 'PENDING' WHERE id = :id")
+    suspend fun markDone(id: String, updatedAt: Long)
 }

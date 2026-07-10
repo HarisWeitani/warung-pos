@@ -58,6 +58,7 @@ fun MoreScreen(
     onNavigateToStock: () -> Unit,
     onNavigateToStockBatch: () -> Unit,
     onNavigateToOpname: () -> Unit,
+    onNavigateToKitchenQueue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showLockDialog by remember { mutableStateOf(false) }
@@ -97,6 +98,12 @@ fun MoreScreen(
             item {
                 MoreSectionHeader("Day")
                 MoreItem("Day History", Icons.Default.TableBar, onClick = onNavigateToShiftHistory)
+                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+            }
+
+            item {
+                MoreSectionHeader("Kitchen")
+                MoreItem("Kitchen Queue", Icons.Default.Restaurant, onClick = onNavigateToKitchenQueue)
                 HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             }
 

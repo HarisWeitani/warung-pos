@@ -51,4 +51,12 @@ class OrderRepositoryImpl @Inject constructor(
         )
         sync.notifyPendingSync()
     }
+
+    override fun observeQueue(): Flow<List<OrderItem>> =
+        orderItemDao.observeQueue().map { it.map { e -> e.toDomain() } }
+
+    override suspend fun markItemDone(id: String) {
+        orderItemDao.markDone(id, DateUtil.nowEpochMs())
+        sync.notifyPendingSync()
+    }
 }

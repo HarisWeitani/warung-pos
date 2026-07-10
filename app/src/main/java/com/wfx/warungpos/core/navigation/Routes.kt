@@ -22,6 +22,7 @@ import kotlinx.serialization.Serializable
 // ── Bills & Order ─────────────────────────────────────────────────────────────
 @Serializable data class BillDetailRoute(val billId: String)
 @Serializable data class PaymentRoute(val billId: String)
+@Serializable data object KitchenQueueRoute
 
 // ── Expense ──────────────────────────────────────────────────────────────────
 @Serializable data object ExpenseLogRoute

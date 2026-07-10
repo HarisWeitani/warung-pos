@@ -17,6 +17,8 @@ import androidx.navigation.compose.composable
 import com.wfx.warungpos.core.common.UserRole
 import com.wfx.warungpos.feature.expense.ExpenseLogScreen
 import com.wfx.warungpos.feature.expense.ExpenseLogViewModel
+import com.wfx.warungpos.feature.kitchen.KitchenQueueScreen
+import com.wfx.warungpos.feature.kitchen.KitchenQueueViewModel
 import com.wfx.warungpos.feature.menu.MenuItemEditScreen
 import com.wfx.warungpos.feature.menu.MenuItemEditViewModel
 import com.wfx.warungpos.feature.menu.MenuManagementScreen
@@ -226,6 +228,16 @@ fun AppNavGraph(
                 onNavigateToStock = { navController.navigate(StockRoute) },
                 onNavigateToStockBatch = { navController.navigate(StockBatchRoute) },
                 onNavigateToOpname = { navController.navigate(OpnameRoute) },
+                onNavigateToKitchenQueue = { navController.navigate(KitchenQueueRoute) },
+            )
+        }
+
+        composable<KitchenQueueRoute> {
+            val vm: KitchenQueueViewModel = hiltViewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            KitchenQueueScreen(
+                state = state,
+                onMarkDone = vm::markDone,
             )
         }
 
