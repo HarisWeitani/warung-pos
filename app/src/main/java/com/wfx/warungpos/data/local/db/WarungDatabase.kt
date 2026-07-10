@@ -24,6 +24,7 @@ import com.wfx.warungpos.data.local.entity.MenuItemIngredientEntity
 import com.wfx.warungpos.data.local.entity.OrderItemEntity
 import com.wfx.warungpos.data.local.entity.PaymentEntity
 import com.wfx.warungpos.data.local.entity.PaymentMethodEntity
+import com.wfx.warungpos.data.local.entity.PendingStockDeductionEntity
 import com.wfx.warungpos.data.local.entity.ShiftEntity
 import com.wfx.warungpos.data.local.entity.StockBatchEntity
 import com.wfx.warungpos.data.local.entity.StockItemEntity
@@ -51,8 +52,9 @@ import com.wfx.warungpos.data.local.entity.ZReportEntity
         MenuItemIngredientEntity::class,
         StockOpnameEntity::class,
         StockOpnameLineEntity::class,
+        PendingStockDeductionEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

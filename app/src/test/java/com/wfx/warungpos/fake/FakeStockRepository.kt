@@ -16,6 +16,7 @@ class FakeStockRepository : StockRepository {
     val ingredients = mutableListOf<MenuItemIngredient>()
     val opnames = mutableMapOf<String, StockOpname>()
     val lines = mutableMapOf<String, StockOpnameLine>()
+    val pendingDeductions = mutableListOf<Triple<String, String, Double>>() // opnameId, stockItemId, amount
 
     override fun observeAllItems(): Flow<List<StockItem>> = flowOf(items.values.toList())
 
@@ -85,5 +86,24 @@ class FakeStockRepository : StockRepository {
 
     override suspend fun deductQty(stockItemId: String, amount: Double) {
         items[stockItemId]?.let { items[stockItemId] = it.copy(currentQty = it.currentQty - amount) }
+    }
+
+    override suspend fun queueDeduction(opnameId: String, stockItemId: String, amount: Double) {
+        pendingDeductions.add(Triple(opnameId, stockItemId, amount))
+    }
+
+    override suspend fun commitOpname(opname: StockOpname, lines: List<StockOpnameLine>) {
+        lines.forEach { this.lines[it.id] = it }
+        lines.forEach { line -> items[line.stockItemId]?.let { items[line.stockItemId] = it.copy(currentQty = line.countedQty) } }
+
+        pendingDeductions.filter { it.first == opname.id }
+            .groupBy({ it.second }, { it.third })
+            .mapValues { (_, amounts) -> amounts.sum() }
+            .forEach { (stockItemId, amount) ->
+                items[stockItemId]?.let { items[stockItemId] = it.copy(currentQty = it.currentQty - amount) }
+            }
+        pendingDeductions.removeAll { it.first == opname.id }
+
+        opnames[opname.id] = opname.copy(status = OpnameStatus.COMPLETED)
     }
 }

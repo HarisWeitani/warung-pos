@@ -1,8 +1,10 @@
 package com.wfx.warungpos.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Upsert
+import com.wfx.warungpos.data.local.entity.PendingStockDeductionEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameEntity
 import com.wfx.warungpos.data.local.entity.StockOpnameLineEntity
 import kotlinx.coroutines.flow.Flow
@@ -38,4 +40,13 @@ interface StockOpnameDao {
 
     @Query("SELECT * FROM stock_opname_lines WHERE syncStatus = 'PENDING'")
     suspend fun getPendingLines(): List<StockOpnameLineEntity>
+
+    @Insert
+    suspend fun insertPendingDeduction(entity: PendingStockDeductionEntity)
+
+    @Query("SELECT * FROM pending_stock_deductions WHERE opnameId = :opnameId")
+    suspend fun getPendingDeductions(opnameId: String): List<PendingStockDeductionEntity>
+
+    @Query("DELETE FROM pending_stock_deductions WHERE opnameId = :opnameId")
+    suspend fun clearPendingDeductions(opnameId: String)
 }

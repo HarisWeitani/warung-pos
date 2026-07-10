@@ -50,3 +50,26 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_status` ON `bills` (`status`)")
     }
 }
+
+// FR-OPNAME-7: sales during an active opname are queued here instead of touching StockItem
+// directly, then applied on top of the counted baseline when the opname commits.
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `pending_stock_deductions` (
+                `id` TEXT NOT NULL,
+                `opnameId` TEXT NOT NULL,
+                `stockItemId` TEXT NOT NULL,
+                `amount` REAL NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY(`opnameId`) REFERENCES `stock_opnames`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`stockItemId`) REFERENCES `stock_items`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pending_stock_deductions_opnameId` ON `pending_stock_deductions` (`opnameId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pending_stock_deductions_stockItemId` ON `pending_stock_deductions` (`stockItemId`)")
+    }
+}

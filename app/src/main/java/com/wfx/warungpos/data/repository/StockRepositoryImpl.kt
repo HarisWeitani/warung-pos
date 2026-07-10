@@ -1,12 +1,15 @@
 package com.wfx.warungpos.data.repository
 
 import androidx.room.withTransaction
+import com.wfx.warungpos.core.common.OpnameStatus
 import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
+import com.wfx.warungpos.core.util.UuidGenerator
 import com.wfx.warungpos.data.local.dao.StockDao
 import com.wfx.warungpos.data.local.dao.StockOpnameDao
 import com.wfx.warungpos.data.local.db.WarungDatabase
+import com.wfx.warungpos.data.local.entity.PendingStockDeductionEntity
 import com.wfx.warungpos.data.local.mapper.toDomain
 import com.wfx.warungpos.data.local.mapper.toEntity
 import com.wfx.warungpos.data.remote.sync.SyncCoordinator
@@ -150,6 +153,40 @@ class StockRepositoryImpl @Inject constructor(
 
     override suspend fun deductQty(stockItemId: String, amount: Double) {
         stockDao.deductQty(stockItemId, amount, DateUtil.nowEpochMs())
+        sync.notifyPendingSync()
+    }
+
+    override suspend fun queueDeduction(opnameId: String, stockItemId: String, amount: Double) {
+        opnameDao.insertPendingDeduction(
+            PendingStockDeductionEntity(
+                id = UuidGenerator.generate(),
+                opnameId = opnameId,
+                stockItemId = stockItemId,
+                amount = amount,
+                createdAt = DateUtil.nowEpochMs(),
+            )
+        )
+    }
+
+    override suspend fun commitOpname(opname: StockOpname, lines: List<StockOpnameLine>) {
+        val now = DateUtil.nowEpochMs()
+        val deviceId = sessionManager.deviceId
+        database.withTransaction {
+            opnameDao.upsertLines(
+                lines.map { it.copy(syncStatus = SyncStatus.PENDING, updatedAt = now, deviceId = deviceId).toEntity() }
+            )
+            lines.forEach { line -> stockDao.updateQty(line.stockItemId, line.countedQty, now) }
+
+            val queued = opnameDao.getPendingDeductions(opname.id)
+            queued.groupBy { it.stockItemId }
+                .mapValues { (_, entries) -> entries.sumOf { it.amount } }
+                .forEach { (stockItemId, amount) -> stockDao.deductQty(stockItemId, amount, now) }
+            opnameDao.clearPendingDeductions(opname.id)
+
+            opnameDao.upsertOpname(
+                opname.copy(status = OpnameStatus.COMPLETED, completedAt = now, syncStatus = SyncStatus.PENDING, updatedAt = now, deviceId = deviceId).toEntity()
+            )
+        }
         sync.notifyPendingSync()
     }
 }

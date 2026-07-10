@@ -40,4 +40,13 @@ interface StockRepository {
 
     /** Decrements currentQty by [amount] (used for ingredient deduction on payment). */
     suspend fun deductQty(stockItemId: String, amount: Double)
+
+    /** FR-OPNAME-7: holds a sale-driven deduction instead of applying it, while [opnameId] is
+     * IN_PROGRESS, so it can't be silently overwritten by the opname's absolute setCurrentQty. */
+    suspend fun queueDeduction(opnameId: String, stockItemId: String, amount: Double)
+
+    /** FR-OPNAME-5/7: sets currentQty for each line to its counted baseline, then applies any
+     * deductions queued during the session on top of that baseline and clears the queue —
+     * all in one transaction so the queue is never dropped or double-applied. */
+    suspend fun commitOpname(opname: StockOpname, lines: List<StockOpnameLine>)
 }

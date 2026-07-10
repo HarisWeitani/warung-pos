@@ -1,13 +1,17 @@
 package com.wfx.warungpos.domain.usecase.stock
 
 import com.wfx.warungpos.core.common.OpnameStatus
+import com.wfx.warungpos.core.common.OrderItemStatus
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.VarianceReason
 import com.wfx.warungpos.domain.exception.MissingVarianceReasonException
 import com.wfx.warungpos.domain.exception.OpnameAlreadyInProgressException
 import com.wfx.warungpos.domain.exception.OpnameNotInProgressException
+import com.wfx.warungpos.domain.model.MenuItemIngredient
+import com.wfx.warungpos.domain.model.OrderItem
 import com.wfx.warungpos.domain.model.StockBatch
 import com.wfx.warungpos.domain.model.StockItem
+import com.wfx.warungpos.fake.FakeOrderRepository
 import com.wfx.warungpos.fake.FakeSessionProvider
 import com.wfx.warungpos.fake.FakeStockRepository
 import kotlinx.coroutines.test.runTest
@@ -155,5 +159,62 @@ class SubmitStockOpnameUseCaseTest {
         val line = repo.getLinesForOpname(opnameId).first()
         val result = useCase(listOf(line))
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `deductions queued during the session apply on top of the counted baseline on submit`() = runTest {
+        val opnameId = startUseCase().getOrThrow()
+        // A sale happens mid-session: queued, not applied immediately.
+        repo.queueDeduction(opnameId, "s1", 3.0)
+        assertEquals(10.0, repo.items["s1"]!!.currentQty, 0.0001)
+
+        val line = repo.getLinesForOpname(opnameId).first().copy(countedQty = 8.0, varianceReason = VarianceReason.COUNT_ERROR)
+        val result = useCase(listOf(line))
+
+        assertTrue(result.isSuccess)
+        assertEquals(5.0, repo.items["s1"]!!.currentQty, 0.0001) // 8 counted - 3 queued
+        assertTrue(repo.pendingDeductions.isEmpty())
+    }
+}
+
+class DeductStockForBillUseCaseTest {
+    private val stockRepo = FakeStockRepository()
+    private val orderRepo = FakeOrderRepository()
+    private val sessionProvider = FakeSessionProvider()
+    private val startOpnameUseCase = StartStockOpnameUseCase(stockRepo, sessionProvider)
+    private val useCase = DeductStockForBillUseCase(orderRepo, stockRepo)
+
+    private fun orderItem(id: String, billId: String, menuItemId: String, qty: Int) = OrderItem(
+        id = id, billId = billId, menuItemId = menuItemId, nameSnapshot = "Item", priceSnapshot = 1_000L,
+        quantity = qty, selectedVariants = emptyList(), lineTotal = 1_000L, status = OrderItemStatus.ORDERED,
+        voidReason = null, voidedBy = null, createdAt = 0L, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
+    )
+
+    @Before
+    fun setup() {
+        stockRepo.items["s1"] = stockItem("s1", qty = 10.0)
+        stockRepo.ingredients.add(
+            MenuItemIngredient(
+                menuItemId = "menu1", stockItemId = "s1", qtyPerServing = 2.0,
+                updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
+            )
+        )
+        orderRepo.items["oi1"] = orderItem("oi1", "bill1", "menu1", qty = 3)
+    }
+
+    @Test
+    fun `deducts immediately when no opname is in progress`() = runTest {
+        useCase("bill1")
+        assertEquals(4.0, stockRepo.items["s1"]!!.currentQty, 0.0001) // 10 - 2*3
+    }
+
+    @Test
+    fun `queues instead of deducting while an opname is in progress`() = runTest {
+        startOpnameUseCase()
+        useCase("bill1")
+
+        assertEquals(10.0, stockRepo.items["s1"]!!.currentQty, 0.0001) // untouched
+        assertEquals(1, stockRepo.pendingDeductions.size)
+        assertEquals(6.0, stockRepo.pendingDeductions.first().third, 0.0001) // 2*3
     }
 }
