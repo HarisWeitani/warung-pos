@@ -45,6 +45,7 @@ fun StockScreen(
     onNameChange: (String) -> Unit,
     onUnitChange: (String) -> Unit,
     onReorderPointChange: (String) -> Unit,
+    onCurrentQtyChange: (String) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -95,6 +96,7 @@ fun StockScreen(
                 onNameChange = onNameChange,
                 onUnitChange = onUnitChange,
                 onReorderPointChange = onReorderPointChange,
+                onCurrentQtyChange = onCurrentQtyChange,
                 onSave = onSave,
                 onDismiss = onDismissSheet,
             )
@@ -147,9 +149,13 @@ private fun StockItemForm(
     onNameChange: (String) -> Unit,
     onUnitChange: (String) -> Unit,
     onReorderPointChange: (String) -> Unit,
+    onCurrentQtyChange: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val isNewItem = form.editingId == null
+    val unitLabel = form.unit.ifBlank { "units" }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -157,7 +163,7 @@ private fun StockItemForm(
             .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(if (form.editingId == null) "Add Stock Item" else "Edit Stock Item", style = MaterialTheme.typography.titleLarge)
+        Text(if (isNewItem) "Add Stock Item" else "Edit Stock Item", style = MaterialTheme.typography.titleLarge)
 
         OutlinedTextField(
             value = form.name,
@@ -171,14 +177,28 @@ private fun StockItemForm(
             value = form.unit,
             onValueChange = onUnitChange,
             label = { Text("Unit (e.g. kg, pcs)") },
+            supportingText = { Text("Letters only — how you count it, not how much you have") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        if (isNewItem) {
+            OutlinedTextField(
+                value = form.currentQty,
+                onValueChange = onCurrentQtyChange,
+                label = { Text("Starting Quantity") },
+                supportingText = { Text("How much you have right now, in $unitLabel — leave blank for 0") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         OutlinedTextField(
             value = form.reorderPoint,
             onValueChange = onReorderPointChange,
             label = { Text("Low-stock threshold") },
+            supportingText = { Text("Warn me when stock falls to or below this many $unitLabel") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),

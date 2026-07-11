@@ -352,6 +352,7 @@ fun AppNavGraph(
                 onNameChange = vm::onNameChange,
                 onUnitChange = vm::onUnitChange,
                 onReorderPointChange = vm::onReorderPointChange,
+                onCurrentQtyChange = vm::onCurrentQtyChange,
                 onSave = vm::save,
                 onBack = { navController.popBackStack() },
             )

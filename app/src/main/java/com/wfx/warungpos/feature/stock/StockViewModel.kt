@@ -7,6 +7,7 @@ import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
 import com.wfx.warungpos.core.util.filterDecimalInput
+import com.wfx.warungpos.core.util.filterUnitInput
 import com.wfx.warungpos.domain.model.StockItem
 import com.wfx.warungpos.domain.repository.StockRepository
 import com.wfx.warungpos.domain.usecase.stock.UpsertStockItemUseCase
@@ -26,6 +27,9 @@ data class StockFormState(
     val name: String = "",
     val unit: String = "",
     val reorderPoint: String = "",
+    // Only used when adding a new item (editingId == null) — an existing item's quantity is
+    // changed via Stock Batch / Stock Opname instead, so this stays blank and unused on edit.
+    val currentQty: String = "",
     val error: String? = null,
 )
 
@@ -69,9 +73,11 @@ class StockViewModel @Inject constructor(
     }
 
     fun onNameChange(value: String) = _form.update { it.copy(name = value, error = null) }
-    fun onUnitChange(value: String) = _form.update { it.copy(unit = value, error = null) }
+    fun onUnitChange(value: String) = _form.update { it.copy(unit = filterUnitInput(value), error = null) }
     fun onReorderPointChange(value: String) =
         _form.update { it.copy(reorderPoint = filterDecimalInput(value), error = null) }
+    fun onCurrentQtyChange(value: String) =
+        _form.update { it.copy(currentQty = filterDecimalInput(value), error = null) }
 
     fun save() {
         viewModelScope.launch {
@@ -83,7 +89,11 @@ class StockViewModel @Inject constructor(
                 id = form.editingId ?: UuidGenerator.generate(),
                 name = form.name.trim(),
                 unit = form.unit.trim(),
-                currentQty = existing?.currentQty ?: 0.0,
+                // New items take their starting quantity from the form (blank -> 0, same as
+                // before); an existing item's quantity is never touched here — it's only ever
+                // adjusted via Stock Batch (receiving) or Stock Opname (recount), which keep an
+                // audit trail this raw edit form doesn't.
+                currentQty = existing?.currentQty ?: (form.currentQty.toDoubleOrNull() ?: 0.0),
                 reorderPoint = reorderPoint,
                 updatedAt = now,
                 syncStatus = SyncStatus.PENDING,
