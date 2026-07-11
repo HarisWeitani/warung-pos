@@ -27,7 +27,10 @@ class CloseShiftUseCase @Inject constructor(
         }
         val shift = shiftRepository.getOpenShift() ?: return Result.failure(ShiftNotOpenException())
 
-        val openBills = billRepository.getOpenBills()
+        // DEFECT-003/008: scoped to this shift — the old getOpenBills() counted every open bill
+        // across every shift that has ever existed, so a stray open bill on an unrelated shift
+        // could block closing a completely different shift.
+        val openBills = billRepository.getOpenBillsForShift(shift.id)
         if (openBills.isNotEmpty()) {
             return Result.failure(OpenBillsBlockShiftCloseException(openBills))
         }

@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 data class VariantSheetState(
@@ -72,6 +74,14 @@ class BillDetailViewModel @Inject constructor(
     private val _voidError = MutableStateFlow<String?>(null)
     private val _variantSheetState = MutableStateFlow<VariantSheetState?>(null)
     val variantSheetState: StateFlow<VariantSheetState?> = _variantSheetState.asStateFlow()
+
+    // DEFECT-004: addItem() does a read-then-write (read the existing line's quantity, write
+    // quantity+1) against Room. Each tap launches its own coroutine via viewModelScope.launch, so
+    // rapid taps on the same menu item could interleave: two taps both read quantity=N before
+    // either write lands, and both write back N+1 — one of the increments is silently lost. This
+    // mutex serializes the whole read-modify-write section so concurrent taps queue up instead of
+    // racing.
+    private val addItemMutex = Mutex()
 
     val uiState: StateFlow<BillDetailUiState> = combine(
         billRepository.observeBillById(billId),
@@ -135,8 +145,8 @@ class BillDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun addItem(menuItem: MenuItem, variants: List<VariantSelection>) {
-        val bill = billRepository.getBill(billId) ?: return
+    private suspend fun addItem(menuItem: MenuItem, variants: List<VariantSelection>) = addItemMutex.withLock {
+        val bill = billRepository.getBill(billId) ?: return@withLock
         val now = DateUtil.nowEpochMs()
         val pricePerUnit = menuItem.basePrice + variants.sumOf { it.priceDelta }
         val existing = if (variants.isEmpty()) {
@@ -166,6 +176,7 @@ class BillDetailViewModel @Inject constructor(
                     lineTotal = pricePerUnit,
                     status = OrderItemStatus.ORDERED,
                     voidReason = null,
+                    voidNote = null,
                     voidedBy = null,
                     createdAt = now,
                     updatedAt = now,

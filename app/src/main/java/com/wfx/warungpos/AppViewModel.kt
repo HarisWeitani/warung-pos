@@ -3,7 +3,6 @@ package com.wfx.warungpos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.database.FirebaseDatabase
-import com.wfx.warungpos.core.common.AppPreferences
 import com.wfx.warungpos.core.common.NetworkMonitor
 import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.UserRole
@@ -36,13 +35,10 @@ class AppViewModel @Inject constructor(
     private val syncCoordinator: SyncCoordinator,
     private val authDataSource: FirebaseAuthDataSource,
     private val ensureDayOpenUseCase: EnsureDayOpenUseCase,
-    val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     val userRole: StateFlow<UserRole> = sessionManager.userRole
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserRole.OWNER)
-
-    val language: StateFlow<String> = appPreferences.language
 
     val isUnlocked: StateFlow<Boolean> = sessionManager.isUnlocked
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)

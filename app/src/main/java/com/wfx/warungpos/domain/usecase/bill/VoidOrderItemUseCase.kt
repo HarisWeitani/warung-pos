@@ -18,7 +18,7 @@ class VoidOrderItemUseCase @Inject constructor(
         val item = orderRepository.getItemById(itemId)
             ?: return Result.failure(IllegalArgumentException("Order item not found"))
         val uid = sessionProvider.currentUserId ?: ""
-        orderRepository.voidItem(itemId, reason, uid)
+        orderRepository.voidItem(itemId, reason, note, uid)
         // Recalculate bill totals after voiding
         val bill = billRepository.getBill(item.billId) ?: return Result.success(Unit)
         val active = orderRepository.getActiveItems(bill.id)

@@ -90,6 +90,13 @@ class PaymentViewModel @Inject constructor(
         }
     }
 
+    /** DEFECT-005: confirmPayment() already set state.error on failure (e.g. underpaid cash)
+     * correctly all along — PaymentScreen just never read it, so a blocked payment looked like
+     * the button did nothing. Called when the user dismisses the now-displayed error dialog. */
+    fun dismissError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     fun confirmPayment() {
         viewModelScope.launch {
             val state = _uiState.value

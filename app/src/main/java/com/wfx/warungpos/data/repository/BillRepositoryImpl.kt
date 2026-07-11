@@ -46,6 +46,9 @@ class BillRepositoryImpl @Inject constructor(
     override suspend fun getOpenBills(): List<Bill> =
         billDao.getOpenBills().map { it.toDomain() }
 
+    override suspend fun getOpenBillsForShift(shiftId: String): List<Bill> =
+        billDao.getOpenBillsForShift(shiftId).map { it.toDomain() }
+
     override suspend fun getPaidBillsForShift(shiftId: String): List<Bill> =
         billDao.getPaidBillsForShift(shiftId).map { it.toDomain() }
 

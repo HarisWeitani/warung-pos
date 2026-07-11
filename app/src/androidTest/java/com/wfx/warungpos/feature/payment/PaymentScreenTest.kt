@@ -44,7 +44,7 @@ class PaymentScreenTest {
         val state = PaymentUiState(bill = bill, paymentMethods = listOf(cashMethod), selectedMethodId = null)
         composeTestRule.setContent {
             WarungPosTheme {
-                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {})
+                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {}, onDismissError = {})
             }
         }
         composeTestRule.onNodeWithText("Confirm Payment").assertIsNotEnabled()
@@ -61,7 +61,7 @@ class PaymentScreenTest {
         )
         composeTestRule.setContent {
             WarungPosTheme {
-                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {})
+                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {}, onDismissError = {})
             }
         }
         composeTestRule.onNodeWithText("Rp 5.000", substring = true).assertIsDisplayed()
@@ -77,7 +77,7 @@ class PaymentScreenTest {
         )
         composeTestRule.setContent {
             WarungPosTheme {
-                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = { confirmed = true })
+                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = { confirmed = true }, onDismissError = {})
             }
         }
         composeTestRule.onNodeWithText("Confirm Payment").performClick()
@@ -89,9 +89,42 @@ class PaymentScreenTest {
         val state = PaymentUiState(bill = bill, paymentMethods = listOf(cashMethod), isSuccess = true)
         composeTestRule.setContent {
             WarungPosTheme {
-                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {})
+                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {}, onDismissError = {})
             }
         }
         composeTestRule.onNodeWithText("Payment Complete!", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun defect005Regression_paymentErrorIsActuallyShownToTheUser() {
+        val state = PaymentUiState(
+            bill = bill, paymentMethods = listOf(cashMethod), selectedMethodId = cashMethod.id,
+            tenderAmount = "10000", error = "Tendered amount is less than row amount",
+        )
+        composeTestRule.setContent {
+            WarungPosTheme {
+                PaymentScreen(state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {}, onDismissError = {})
+            }
+        }
+        composeTestRule.onNodeWithText("Tendered amount is less than row amount", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun defect005Regression_dismissingErrorDialogInvokesOnDismissError() {
+        var dismissed = false
+        val state = PaymentUiState(
+            bill = bill, paymentMethods = listOf(cashMethod), selectedMethodId = cashMethod.id,
+            error = "Tendered amount is less than row amount",
+        )
+        composeTestRule.setContent {
+            WarungPosTheme {
+                PaymentScreen(
+                    state = state, onBack = {}, onSelectMethod = {}, onTenderChange = {}, onConfirm = {},
+                    onDismissError = { dismissed = true },
+                )
+            }
+        }
+        composeTestRule.onNodeWithText("OK").performClick()
+        assert(dismissed)
     }
 }

@@ -85,7 +85,7 @@ class ReportQueryDaoTest {
     ) = OrderItemEntity(
         id = id, billId = billId, menuItemId = menuItemId, nameSnapshot = "Item",
         priceSnapshot = 10_000L, quantity = qty, selectedVariantsJson = "[]",
-        lineTotal = 10_000L * qty, status = status, voidReason = null, voidedBy = null,
+        lineTotal = 10_000L * qty, status = status, voidReason = null, voidNote = null, voidedBy = null,
         createdAt = 0L, updatedAt = 0L, syncStatus = "PENDING", deviceId = "dev-1",
     )
 

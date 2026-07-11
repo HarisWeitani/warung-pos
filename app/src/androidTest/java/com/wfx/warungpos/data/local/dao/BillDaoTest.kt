@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.wfx.warungpos.data.local.db.WarungDatabase
 import com.wfx.warungpos.data.local.entity.BillEntity
+import com.wfx.warungpos.data.local.entity.ShiftEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -44,11 +45,18 @@ class BillDaoTest {
         createdAt: Long = 0L,
         paidAt: Long? = null,
         grandTotal: Long = 10_000L,
+        shiftId: String? = null,
     ) = BillEntity(
         id = id, status = status, sessionLabel = "Counter",
         createdAt = createdAt, paidAt = paidAt, subtotal = grandTotal, discountTotal = 0L,
-        grandTotal = grandTotal, note = null, shiftId = null, voidReason = null, voidedBy = null,
+        grandTotal = grandTotal, note = null, shiftId = shiftId, voidReason = null, voidedBy = null,
         updatedAt = createdAt, syncStatus = "PENDING", deviceId = "dev-1",
+    )
+
+    private fun shiftEntity(id: String) = ShiftEntity(
+        id = id, openedBy = "user-1", closedBy = null, status = "OPEN",
+        openedAt = 0L, closedAt = null, openingFloat = 0L, closingFloat = null,
+        updatedAt = 0L, syncStatus = "PENDING", deviceId = "dev-1",
     )
 
     @Test
@@ -100,5 +108,32 @@ class BillDaoTest {
     @Test
     fun getById_missingBill_returnsNull() = runTest {
         assertNull(dao.getById("nonexistent"))
+    }
+
+    @Test
+    fun getOpenBillsForShift_onlyReturnsBillsOnThatShift() = runTest {
+        db.shiftDao().upsert(shiftEntity("shift-a"))
+        db.shiftDao().upsert(shiftEntity("shift-b"))
+        dao.upsert(bill("bill-1", status = "OPEN", shiftId = "shift-a"))
+        dao.upsert(bill("bill-2", status = "OPEN", shiftId = "shift-b"))
+        dao.upsert(bill("bill-3", status = "OPEN", shiftId = "shift-a"))
+
+        val forA = dao.getOpenBillsForShift("shift-a")
+        assertEquals(2, forA.size)
+        assertTrue(forA.all { it.shiftId == "shift-a" })
+
+        val forB = dao.getOpenBillsForShift("shift-b")
+        assertEquals(1, forB.size)
+    }
+
+    @Test
+    fun getOpenBillsForShift_excludesOtherShiftsEvenWhenGetOpenBillsIsNonEmpty() = runTest {
+        // DEFECT-003/008 regression: a stray open bill on an unrelated shift must not surface
+        // when asking for a specific shift's open bills.
+        db.shiftDao().upsert(shiftEntity("shift-old"))
+        dao.upsert(bill("bill-stray", status = "OPEN", shiftId = "shift-old"))
+
+        assertEquals(1, dao.getOpenBills().size)
+        assertTrue(dao.getOpenBillsForShift("shift-current").isEmpty())
     }
 }

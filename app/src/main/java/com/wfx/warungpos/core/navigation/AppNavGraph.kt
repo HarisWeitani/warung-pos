@@ -128,6 +128,7 @@ fun AppNavGraph(
                 onSelectMethod = vm::selectMethod,
                 onTenderChange = vm::onTenderChange,
                 onConfirm = vm::confirmPayment,
+                onDismissError = vm::dismissError,
             )
         }
 

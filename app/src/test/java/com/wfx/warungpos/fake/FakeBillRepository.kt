@@ -25,6 +25,9 @@ class FakeBillRepository : BillRepository {
 
     override suspend fun getOpenBills(): List<Bill> = bills.values.filter { it.status == BillStatus.OPEN }
 
+    override suspend fun getOpenBillsForShift(shiftId: String): List<Bill> =
+        bills.values.filter { it.status == BillStatus.OPEN && it.shiftId == shiftId }
+
     override suspend fun getPaidBillsForShift(shiftId: String): List<Bill> =
         bills.values.filter { it.shiftId == shiftId && it.status == BillStatus.PAID }
 

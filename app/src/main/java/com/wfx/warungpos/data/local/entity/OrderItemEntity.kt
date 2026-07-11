@@ -34,6 +34,9 @@ data class OrderItemEntity(
     val lineTotal: Long,
     val status: String,
     val voidReason: String?,
+    /** DEFECT-006: the required free-text note for VoidReason.OTHER — was validated at submit
+     * time but previously had nowhere to be written to. */
+    val voidNote: String?,
     val voidedBy: String?,
     val createdAt: Long,
     val updatedAt: Long,

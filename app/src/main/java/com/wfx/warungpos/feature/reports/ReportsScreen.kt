@@ -89,10 +89,15 @@ fun ReportsScreen(
                 }
             }
 
+            // DEFECT-014(b): these figures (Transactions/Revenue/Expenses/Net below, and the
+            // shift-start timestamp here) are scoped to the current shift, not the calendar day —
+            // a shift can span multiple real days if not closed daily. Labeled "Shift" rather
+            // than "Day" so it can't be conflated with the genuinely day-scoped "Today's
+            // Dashboard" card above. Best Sellers below is a separate, correctly day-scoped query.
             state.shift?.let { shift ->
                 item {
                     Text(
-                        text = "Day started: ${DateUtil.toDisplayString(shift.openedAt)}",
+                        text = "Shift started: ${DateUtil.toDisplayString(shift.openedAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -102,7 +107,7 @@ fun ReportsScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Day Summary", style = MaterialTheme.typography.titleMedium)
+                        Text("Current Shift Summary", style = MaterialTheme.typography.titleMedium)
                         if (state.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.padding(8.dp))
                         } else {

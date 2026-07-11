@@ -9,7 +9,7 @@ interface OrderRepository {
     suspend fun getActiveItems(billId: String): List<OrderItem>
     suspend fun getItemById(id: String): OrderItem?
     suspend fun saveItem(item: OrderItem)
-    suspend fun voidItem(id: String, reason: VoidReason, voidedBy: String)
+    suspend fun voidItem(id: String, reason: VoidReason, voidNote: String?, voidedBy: String)
 
     /** Unfulfilled (ORDERED) items across every currently OPEN bill, oldest first. */
     fun observeQueue(): Flow<List<OrderItem>>

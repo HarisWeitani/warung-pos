@@ -127,6 +127,7 @@ internal fun DataSnapshot.toOrderItemEntity(): OrderItemEntity? {
         lineTotal = child("lineTotal").getValue(Long::class.java) ?: 0L,
         status = child("status").getValue(String::class.java) ?: return null,
         voidReason = child("voidReason").getValue(String::class.java),
+        voidNote = child("voidNote").getValue(String::class.java),
         voidedBy = child("voidedBy").getValue(String::class.java),
         createdAt = child("createdAt").getValue(Long::class.java) ?: return null,
         updatedAt = child("updatedAt").getValue(Long::class.java) ?: 0L,
@@ -293,7 +294,7 @@ internal fun OrderItemEntity.toRtdbMap(): Map<String, Any?> = mapOf(
     "billId" to billId, "menuItemId" to menuItemId, "nameSnapshot" to nameSnapshot,
     "priceSnapshot" to priceSnapshot, "quantity" to quantity,
     "selectedVariantsJson" to selectedVariantsJson, "lineTotal" to lineTotal,
-    "status" to status, "voidReason" to voidReason, "voidedBy" to voidedBy,
+    "status" to status, "voidReason" to voidReason, "voidNote" to voidNote, "voidedBy" to voidedBy,
     "createdAt" to createdAt, "updatedAt" to updatedAt, "deviceId" to deviceId,
 )
 

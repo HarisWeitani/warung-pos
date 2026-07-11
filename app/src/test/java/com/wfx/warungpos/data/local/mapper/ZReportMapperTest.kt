@@ -25,4 +25,33 @@ class ZReportMapperTest {
         assertEquals(entity, roundTripped)
         assertEquals(snapshot, roundTripped.snapshotJson)
     }
+
+    @Test
+    fun `DEFECT-010 regression - toSnapshot parses the real GenerateZReportUseCase JSON shape`() {
+        val snapshotJson = """{"revenue":150000,"expenses":30000,"transactions":7,"voidCount":1,"voidValue":5000,"openingFloat":100000,"countedCash":150000,"expectedCash":155000,"variance":-5000,"paymentBreakdown":[{"methodId":"pm_tunai","total":100000},{"methodId":"pm_qris","total":50000}]}"""
+        val entity = ZReportEntity(id = "zreport-3", shiftId = "shift-3", snapshotJson = snapshotJson, createdAt = 3_000L)
+
+        val snapshot = entity.toDomain().toSnapshot()
+
+        assertEquals(150_000L, snapshot!!.revenue)
+        assertEquals(30_000L, snapshot.expenses)
+        assertEquals(7, snapshot.transactions)
+        assertEquals(1, snapshot.voidCount)
+        assertEquals(5_000L, snapshot.voidValue)
+        assertEquals(100_000L, snapshot.openingFloat)
+        assertEquals(150_000L, snapshot.countedCash)
+        assertEquals(155_000L, snapshot.expectedCash)
+        assertEquals(-5_000L, snapshot.variance)
+        assertEquals(2, snapshot.paymentBreakdown.size)
+        assertEquals("pm_tunai", snapshot.paymentBreakdown[0].paymentMethodId)
+        assertEquals(100_000L, snapshot.paymentBreakdown[0].total)
+        assertEquals("pm_qris", snapshot.paymentBreakdown[1].paymentMethodId)
+        assertEquals(50_000L, snapshot.paymentBreakdown[1].total)
+    }
+
+    @Test
+    fun `DEFECT-010 regression - toSnapshot returns null for malformed JSON instead of throwing`() {
+        val entity = ZReportEntity(id = "zreport-4", shiftId = "shift-4", snapshotJson = "not valid json", createdAt = 4_000L)
+        assertEquals(null, entity.toDomain().toSnapshot())
+    }
 }

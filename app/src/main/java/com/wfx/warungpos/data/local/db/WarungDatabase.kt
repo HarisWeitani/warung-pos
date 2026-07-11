@@ -54,7 +54,7 @@ import com.wfx.warungpos.data.local.entity.ZReportEntity
         StockOpnameLineEntity::class,
         PendingStockDeductionEntity::class,
     ],
-    version = 4,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

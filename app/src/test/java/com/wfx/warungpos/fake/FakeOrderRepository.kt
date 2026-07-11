@@ -22,8 +22,10 @@ class FakeOrderRepository : OrderRepository {
         items[item.id] = item
     }
 
-    override suspend fun voidItem(id: String, reason: VoidReason, voidedBy: String) {
-        items[id]?.let { items[id] = it.copy(status = OrderItemStatus.VOID, voidReason = reason, voidedBy = voidedBy) }
+    override suspend fun voidItem(id: String, reason: VoidReason, voidNote: String?, voidedBy: String) {
+        items[id]?.let {
+            items[id] = it.copy(status = OrderItemStatus.VOID, voidReason = reason, voidNote = voidNote, voidedBy = voidedBy)
+        }
     }
 
     override fun observeQueue(): Flow<List<OrderItem>> =

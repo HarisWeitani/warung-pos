@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.common.VarianceReason
+import com.wfx.warungpos.core.util.filterDecimalInput
 import com.wfx.warungpos.domain.model.StockOpname
 import com.wfx.warungpos.domain.model.StockOpnameLine
 import com.wfx.warungpos.domain.repository.StockRepository
@@ -87,15 +88,53 @@ class StockOpnameViewModel @Inject constructor(
     }
 
     fun onCountedQtyChange(stockItemId: String, value: String) {
-        val filtered = value.filter { it.isDigit() || it == '.' }
+        val filtered = filterDecimalInput(value)
         _uiState.update { state ->
             state.copy(lines = state.lines.map { if (it.stockItemId == stockItemId) it.copy(countedQty = filtered) else it }, error = null)
         }
+        persistLineDraft(stockItemId)
     }
 
     fun onReasonChange(stockItemId: String, reason: VarianceReason) {
         _uiState.update { state ->
             state.copy(lines = state.lines.map { if (it.stockItemId == stockItemId) it.copy(reason = reason) else it }, error = null)
+        }
+        persistLineDraft(stockItemId)
+    }
+
+    /**
+     * DEFECT-013: counted-quantity/reason edits used to live only in `_uiState` — navigating
+     * away and back (even just to More and back) recreated this ViewModel, whose `init` block
+     * reloads lines straight from the DB, silently discarding anything not yet submitted. Every
+     * edit is now written through to the `stock_opname_lines` row immediately (the same
+     * `saveLine` used at final submit), so `loadLines()` reads back the latest draft instead of
+     * whatever was there when the opname started.
+     *
+     * Skipped when the counted-qty text doesn't parse yet (e.g. a bare "" while the user is
+     * mid-retype, or a lone "." before they've typed a digit after it) — there's no valid Double
+     * to persist in that instant, and persisting the fallback systemQty would overwrite a
+     * previously-saved real count with a wrong value. The very next valid keystroke persists
+     * normally, so only a genuinely-incomplete in-flight edit is ever at risk, not a completed one.
+     */
+    private fun persistLineDraft(stockItemId: String) {
+        val opname = _uiState.value.inProgress ?: return
+        val ui = _uiState.value.lines.firstOrNull { it.stockItemId == stockItemId } ?: return
+        val countedQty = ui.countedQty.toDoubleOrNull() ?: return
+        viewModelScope.launch {
+            stockRepository.saveLine(
+                StockOpnameLine(
+                    id = ui.lineId,
+                    opnameId = opname.id,
+                    stockItemId = ui.stockItemId,
+                    systemQty = ui.systemQty,
+                    countedQty = countedQty,
+                    variance = countedQty - ui.systemQty,
+                    varianceReason = ui.reason,
+                    updatedAt = 0L,
+                    syncStatus = SyncStatus.PENDING,
+                    deviceId = "",
+                )
+            )
         }
     }
 

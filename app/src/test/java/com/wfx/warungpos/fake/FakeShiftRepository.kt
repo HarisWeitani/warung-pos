@@ -12,12 +12,19 @@ class FakeShiftRepository : ShiftRepository {
     val zReports = mutableMapOf<String, ZReport>()
 
     override fun observeOpenShift(): Flow<Shift?> =
-        flowOf(shifts.values.firstOrNull { it.status == ShiftStatus.OPEN })
+        flowOf(shifts.values.filter { it.status == ShiftStatus.OPEN }.maxByOrNull { it.openedAt })
 
-    override suspend fun getOpenShift(): Shift? = shifts.values.firstOrNull { it.status == ShiftStatus.OPEN }
+    override suspend fun getOpenShift(): Shift? =
+        shifts.values.filter { it.status == ShiftStatus.OPEN }.maxByOrNull { it.openedAt }
 
     override suspend fun saveShift(shift: Shift) {
         shifts[shift.id] = shift
+    }
+
+    override suspend fun openShiftIfNoneOpen(shift: Shift): Boolean {
+        if (getOpenShift() != null) return false
+        shifts[shift.id] = shift
+        return true
     }
 
     override suspend fun getRecentShifts(limit: Int): List<Shift> =

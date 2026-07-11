@@ -15,6 +15,7 @@ data class OrderItem(
     val lineTotal: Long,
     val status: OrderItemStatus,
     val voidReason: VoidReason?,
+    val voidNote: String?,
     val voidedBy: String?,
     val createdAt: Long,
     val updatedAt: Long,

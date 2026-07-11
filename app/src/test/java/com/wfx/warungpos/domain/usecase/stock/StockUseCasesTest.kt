@@ -187,7 +187,7 @@ class DeductStockForBillUseCaseTest {
     private fun orderItem(id: String, billId: String, menuItemId: String, qty: Int) = OrderItem(
         id = id, billId = billId, menuItemId = menuItemId, nameSnapshot = "Item", priceSnapshot = 1_000L,
         quantity = qty, selectedVariants = emptyList(), lineTotal = 1_000L, status = OrderItemStatus.ORDERED,
-        voidReason = null, voidedBy = null, createdAt = 0L, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
+        voidReason = null, voidNote = null, voidedBy = null, createdAt = 0L, updatedAt = 0L, syncStatus = SyncStatus.SYNCED, deviceId = "dev",
     )
 
     @Before

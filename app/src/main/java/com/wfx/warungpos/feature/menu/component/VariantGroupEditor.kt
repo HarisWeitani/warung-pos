@@ -20,6 +20,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -40,12 +44,27 @@ fun VariantGroupEditor(
 ) {
     val group = groupUi.group
 
+    // DEFECT-007: every keystroke here round-trips through updateGroup()/updateOption() in the
+    // ViewModel, which writes to Room *and then reloads every group and option for this item from
+    // Room* before the new value flows back down. Feeding the TextField's `value` straight from
+    // that round-tripped `group`/`option` meant fast typing could show a stale or reordered
+    // value mid-flight — keystrokes landing before the previous one's DB round trip completed
+    // would render against out-of-date text, scrambling or dropping characters. `remember`ing a
+    // local buffer keyed on the stable id means what's on screen is always exactly what was
+    // typed, independent of how slow or out-of-order the persistence round trip is; the id key
+    // still lets the field correctly pick up a genuinely different group/option if the list
+    // reshuffles (e.g. after a delete).
+    var nameText by remember(group.id) { mutableStateOf(group.name) }
+
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    value = group.name,
-                    onValueChange = { onUpdateGroup(group.copy(name = it)) },
+                    value = nameText,
+                    onValueChange = {
+                        nameText = it
+                        onUpdateGroup(group.copy(name = it))
+                    },
                     label = { Text("Group Name") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -76,18 +95,34 @@ fun VariantGroupEditor(
             HorizontalDivider()
 
             groupUi.options.forEach { option ->
+                // Same local-buffer reasoning as nameText above. The price field additionally
+                // used to display `priceDelta.toString()` — a *reformatted* value derived from
+                // whatever last parsed — so an in-progress "-" (typing a negative delta) parsed
+                // to null, fell back to 0L, and immediately overwrote the "-" the user had just
+                // typed before they could type the digit after it. Buffering the raw typed text
+                // fixes that too: the field shows exactly what was typed, and only the parsed
+                // Long (falling back to 0 for a still-incomplete string like a lone "-") is sent
+                // to the ViewModel.
+                var optionNameText by remember(option.id) { mutableStateOf(option.name) }
+                var priceText by remember(option.id) { mutableStateOf(option.priceDelta.toString()) }
+
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = option.name,
-                        onValueChange = { onUpdateOption(option.copy(name = it)) },
+                        value = optionNameText,
+                        onValueChange = {
+                            optionNameText = it
+                            onUpdateOption(option.copy(name = it))
+                        },
                         label = { Text("Option") },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedTextField(
-                        value = option.priceDelta.toString(),
+                        value = priceText,
                         onValueChange = { v ->
-                            val delta = v.filter { it.isDigit() || it == '-' }.toLongOrNull() ?: 0L
+                            val filtered = v.filter { it.isDigit() || it == '-' }
+                            priceText = filtered
+                            val delta = filtered.toLongOrNull() ?: 0L
                             onUpdateOption(option.copy(priceDelta = delta))
                         },
                         label = { Text("+/- Rp") },

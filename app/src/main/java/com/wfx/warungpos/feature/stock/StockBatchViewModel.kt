@@ -6,6 +6,7 @@ import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
+import com.wfx.warungpos.core.util.filterDecimalInput
 import com.wfx.warungpos.domain.model.StockBatch
 import com.wfx.warungpos.domain.model.StockItem
 import com.wfx.warungpos.domain.repository.StockRepository
@@ -64,7 +65,7 @@ class StockBatchViewModel @Inject constructor(
 
     fun onStockItemChange(id: String) = _form.update { it.copy(stockItemId = id, error = null) }
     fun onQtyChange(value: String) =
-        _form.update { it.copy(qty = value.filter { c -> c.isDigit() || c == '.' }, error = null) }
+        _form.update { it.copy(qty = filterDecimalInput(value), error = null) }
     fun onCostChange(value: String) = _form.update { it.copy(costPerUnit = value.filter { c -> c.isDigit() }, error = null) }
 
     fun save() {

@@ -42,10 +42,11 @@ class OrderRepositoryImpl @Inject constructor(
         sync.notifyPendingSync()
     }
 
-    override suspend fun voidItem(id: String, reason: VoidReason, voidedBy: String) {
+    override suspend fun voidItem(id: String, reason: VoidReason, voidNote: String?, voidedBy: String) {
         orderItemDao.voidItem(
             id = id,
             reason = reason.name,
+            voidNote = voidNote,
             voidedBy = voidedBy,
             updatedAt = DateUtil.nowEpochMs(),
         )

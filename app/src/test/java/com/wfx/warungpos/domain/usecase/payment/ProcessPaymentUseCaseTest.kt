@@ -134,7 +134,7 @@ class ProcessPaymentUseCaseTest {
         orderRepository.items["oi-1"] = OrderItem(
             id = "oi-1", billId = bill.id, menuItemId = "item-1", nameSnapshot = "Nasi", priceSnapshot = 15_000L,
             quantity = 3, selectedVariants = emptyList(), lineTotal = 45_000L,
-            status = com.wfx.warungpos.core.common.OrderItemStatus.ORDERED, voidReason = null, voidedBy = null,
+            status = com.wfx.warungpos.core.common.OrderItemStatus.ORDERED, voidReason = null, voidNote = null, voidedBy = null,
             createdAt = 0L, updatedAt = 0L, syncStatus = com.wfx.warungpos.core.common.SyncStatus.SYNCED, deviceId = "dev",
         )
 

@@ -113,6 +113,37 @@ fun ZReportScreen(
                 }
             }
 
+            // DEFECT-010: cash reconciliation is the entire point of closing a day — these
+            // figures come from the immutable snapshot captured at close time, not a live
+            // re-derivation (which has no source for countedCash/expectedCash/variance at all).
+            if (state.isFromPersistedSnapshot) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Cash Reconciliation", style = MaterialTheme.typography.titleMedium)
+                            ZReportRow("Expected Cash", CurrencyFormatter.format(state.expectedCash))
+                            ZReportRow("Counted Cash", CurrencyFormatter.format(state.countedCash))
+                            HorizontalDivider()
+                            ZReportRow(
+                                label = "Variance",
+                                value = CurrencyFormatter.format(state.variance),
+                                bold = true,
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Void Summary", style = MaterialTheme.typography.titleMedium)
+                            ZReportRow("Voided Items", state.voidCount.toString())
+                            ZReportRow("Voided Value", CurrencyFormatter.format(state.voidValue))
+                        }
+                    }
+                }
+            }
+
             item { Spacer(Modifier.height(16.dp)) }
         }
     }

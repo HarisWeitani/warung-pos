@@ -40,6 +40,18 @@ class ShiftRepositoryImpl @Inject constructor(
         sync.notifyPendingSync()
     }
 
+    override suspend fun openShiftIfNoneOpen(shift: Shift): Boolean {
+        val opened = shiftDao.openIfNoneOpen(
+            shift.copy(
+                syncStatus = SyncStatus.PENDING,
+                updatedAt = DateUtil.nowEpochMs(),
+                deviceId = sessionManager.deviceId,
+            ).toEntity()
+        )
+        if (opened) sync.notifyPendingSync()
+        return opened
+    }
+
     override suspend fun getRecentShifts(limit: Int): List<Shift> =
         shiftDao.getRecent(limit).map { it.toDomain() }
 

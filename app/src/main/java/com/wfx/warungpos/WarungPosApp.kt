@@ -1,7 +1,5 @@
 package com.wfx.warungpos
 
-import android.content.res.Configuration
-import android.view.ContextThemeWrapper
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,13 +14,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,7 +35,6 @@ import com.wfx.warungpos.feature.auth.PinViewModel
 import com.wfx.warungpos.feature.auth.UpdateRequiredScreen
 import com.wfx.warungpos.feature.sync.SyncStatusBar
 import com.wfx.warungpos.ui.theme.WarungPosTheme
-import java.util.Locale
 
 private val bottomNavRoutes = listOf(OrderRoute, ReportsRoute, MoreRoute)
 
@@ -51,46 +45,42 @@ fun WarungPosApp(
     val userRole by viewModel.userRole.collectAsStateWithLifecycle()
     val versionGateState by viewModel.versionGateState.collectAsStateWithLifecycle()
     val isUnlocked by viewModel.isUnlocked.collectAsStateWithLifecycle()
-    val language by viewModel.language.collectAsStateWithLifecycle()
 
-    // ContextThemeWrapper (not createConfigurationContext) preserves the ContextWrapper chain
-    // back to the host Activity — hiltViewModel() and other Activity-context lookups (e.g. in
-    // SyncStatusBar below) require that chain to resolve the Hilt component / ViewModelStoreOwner.
-    val baseContext = LocalContext.current
-    val localizedContext = remember(baseContext, language) {
-        ContextThemeWrapper(baseContext, 0).apply {
-            val config = Configuration(baseContext.resources.configuration)
-            config.setLocale(Locale(language))
-            applyOverrideConfiguration(config)
-        }
-    }
+    // DEFECT-015: the language preference is applied at the framework level via
+    // AppCompatDelegate.setApplicationLocales() (WarungPosApplication.onCreate() for cold start,
+    // LanguageSettingsViewModel.setLanguage() for an in-session change, which recreates this
+    // Activity) — by the time this composes, LocalContext/LocalConfiguration already reflect it
+    // natively, so stringResource() just works with no manual Context/Configuration override
+    // needed here. A prior hand-rolled ContextThemeWrapper override lived here and silently
+    // failed to actually change what stringResource() resolved.
 
     WarungPosTheme {
-        CompositionLocalProvider(
-            LocalContext provides localizedContext,
-            LocalConfiguration provides localizedContext.resources.configuration,
-        ) {
-            Column {
-                SyncStatusBar()
-                // The version-gate RTDB check runs in the background; we don't block the UI on it.
-                // The PIN screen shows immediately (VersionGateState starts Loading, which is not
-                // UpdateRequired). If the check later resolves to UpdateRequired, the update screen
-                // takes over.
-                when {
-                    versionGateState is VersionGateState.UpdateRequired -> UpdateRequiredScreen()
-                    !isUnlocked -> {
-                        val pinVm: PinViewModel = hiltViewModel()
-                        val pinState by pinVm.uiState.collectAsStateWithLifecycle()
-                        PinScreen(
-                            state = pinState,
-                            onUsernameChange = pinVm::onUsernameChange,
-                            onPinChange = pinVm::onPinChange,
-                            onConfirmPinChange = pinVm::onConfirmPinChange,
-                            onSubmit = pinVm::submit,
-                        )
-                    }
-                    else -> MainApp(userRole = userRole)
+        Column {
+            SyncStatusBar()
+            // The version-gate RTDB check runs in the background; we don't block the UI on it.
+            // The PIN screen shows immediately (VersionGateState starts Loading, which is not
+            // UpdateRequired). If the check later resolves to UpdateRequired, the update screen
+            // takes over.
+            when {
+                versionGateState is VersionGateState.UpdateRequired -> UpdateRequiredScreen()
+                !isUnlocked -> {
+                    val pinVm: PinViewModel = hiltViewModel()
+                    // pinVm is Activity-scoped (see note above) and survives across Lock App
+                    // cycles within a process, so its mode must be re-derived from live
+                    // registration state on every re-entry here, not just at construction —
+                    // otherwise a lock immediately after first-run registration reuses the
+                    // stale pre-registration REGISTER mode. See DEFECT-001.
+                    LaunchedEffect(Unit) { pinVm.refreshMode() }
+                    val pinState by pinVm.uiState.collectAsStateWithLifecycle()
+                    PinScreen(
+                        state = pinState,
+                        onUsernameChange = pinVm::onUsernameChange,
+                        onPinChange = pinVm::onPinChange,
+                        onConfirmPinChange = pinVm::onConfirmPinChange,
+                        onSubmit = pinVm::submit,
+                    )
                 }
+                else -> MainApp(userRole = userRole)
             }
         }
     }

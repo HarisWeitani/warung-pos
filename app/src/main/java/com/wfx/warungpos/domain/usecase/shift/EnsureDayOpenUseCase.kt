@@ -37,10 +37,13 @@ class EnsureDayOpenUseCase @Inject constructor(
         val sameDay = DateUtil.startOfDay(current.openedAt) == DateUtil.startOfDay(DateUtil.nowEpochMs())
         if (sameDay) return
 
-        // Date has rolled over. Auto-close only if there are no open bills; otherwise the
-        // previous Day stays open (even though its date has passed) until an owner manually
-        // resolves it via the Close Day screen in Settings.
-        if (billRepository.getOpenBills().isNotEmpty()) return
+        // Date has rolled over. Auto-close only if there are no open bills *on this shift*;
+        // otherwise the previous Day stays open (even though its date has passed) until an
+        // owner manually resolves it via the Close Day screen in Settings. Scoped to this
+        // shift's id (DEFECT-003/008) — the old unscoped getOpenBills() counted every open bill
+        // across every shift ever, so one stray open bill anywhere could block every future
+        // day's auto-close.
+        if (billRepository.getOpenBillsForShift(current.id).isNotEmpty()) return
 
         autoCloseAndOpenNext(current)
     }
@@ -68,7 +71,15 @@ class EnsureDayOpenUseCase @Inject constructor(
 
     private suspend fun openNewDay() {
         val now = DateUtil.nowEpochMs()
-        shiftRepository.saveShift(
+        // DEFECT-003/008: this used to be a plain saveShift() reached via a check-then-act
+        // (invoke() reads getOpenShift(), decides null, *then* calls this) with no atomicity
+        // between the two — two racing callers (AppViewModel's session-start call and
+        // OrderViewModel's defensive per-bill call) could both observe "no open shift" and each
+        // insert their own OPEN row. openShiftIfNoneOpen() re-checks inside the same DB
+        // transaction as the insert, so at most one of the racers actually opens a shift; the
+        // other's write is simply skipped (the winner's shift is picked up by the next
+        // getOpenShift() call downstream).
+        shiftRepository.openShiftIfNoneOpen(
             Shift(
                 id = UuidGenerator.generate(),
                 openedBy = sessionProvider.currentUserId ?: "",

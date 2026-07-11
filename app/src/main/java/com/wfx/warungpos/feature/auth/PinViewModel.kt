@@ -35,6 +35,17 @@ class PinViewModel @Inject constructor(
     )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /** Re-derives [Mode] from live registration state and clears the form. Must be called every
+     * time the PIN gate becomes visible again (e.g. after Lock App) — this ViewModel is
+     * Activity-scoped and otherwise keeps whatever mode was captured at its first construction,
+     * which is REGISTER if that construction happened before the user ever registered. */
+    fun refreshMode() {
+        _uiState.value = UiState(
+            mode = if (sessionManager.isRegistered) Mode.UNLOCK else Mode.REGISTER,
+            existingUsername = sessionManager.username.value,
+        )
+    }
+
     fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value, error = null) }
 
     fun onPinChange(value: String) =

@@ -6,6 +6,7 @@ import com.wfx.warungpos.core.common.SessionManager
 import com.wfx.warungpos.core.common.SyncStatus
 import com.wfx.warungpos.core.util.DateUtil
 import com.wfx.warungpos.core.util.UuidGenerator
+import com.wfx.warungpos.core.util.filterDecimalInput
 import com.wfx.warungpos.domain.model.StockItem
 import com.wfx.warungpos.domain.repository.StockRepository
 import com.wfx.warungpos.domain.usecase.stock.UpsertStockItemUseCase
@@ -70,7 +71,7 @@ class StockViewModel @Inject constructor(
     fun onNameChange(value: String) = _form.update { it.copy(name = value, error = null) }
     fun onUnitChange(value: String) = _form.update { it.copy(unit = value, error = null) }
     fun onReorderPointChange(value: String) =
-        _form.update { it.copy(reorderPoint = value.filter { c -> c.isDigit() || c == '.' }, error = null) }
+        _form.update { it.copy(reorderPoint = filterDecimalInput(value), error = null) }
 
     fun save() {
         viewModelScope.launch {

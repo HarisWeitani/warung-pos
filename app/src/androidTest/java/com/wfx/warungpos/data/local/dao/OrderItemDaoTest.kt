@@ -52,7 +52,7 @@ class OrderItemDaoTest {
     ) = OrderItemEntity(
         id = id, billId = billId, menuItemId = null, nameSnapshot = "Item $id",
         priceSnapshot = 10_000L, quantity = 1, selectedVariantsJson = "[]",
-        lineTotal = 10_000L, status = status, voidReason = null, voidedBy = null,
+        lineTotal = 10_000L, status = status, voidReason = null, voidNote = null, voidedBy = null,
         createdAt = createdAt, updatedAt = createdAt, syncStatus = "PENDING", deviceId = "dev-1",
     )
 

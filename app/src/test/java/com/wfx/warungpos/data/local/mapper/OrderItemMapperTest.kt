@@ -14,7 +14,7 @@ class OrderItemMapperTest {
         val entity = OrderItemEntity(
             id = "item-1", billId = "bill-1", menuItemId = "menu-1", nameSnapshot = "Nasi Goreng",
             priceSnapshot = 15_000L, quantity = 2, selectedVariantsJson = "[]", lineTotal = 30_000L,
-            status = "ORDERED", voidReason = null, voidedBy = null,
+            status = "ORDERED", voidReason = null, voidNote = null, voidedBy = null,
             createdAt = 1_000L, updatedAt = 1_000L, syncStatus = "PENDING", deviceId = "dev-1",
         )
         val domain = entity.toDomain()
@@ -32,7 +32,7 @@ class OrderItemMapperTest {
         val entity = OrderItemEntity(
             id = "item-2", billId = "bill-1", menuItemId = "menu-1", nameSnapshot = "Nasi Goreng",
             priceSnapshot = 20_000L, quantity = 1, selectedVariantsJson = json, lineTotal = 20_000L,
-            status = "ORDERED", voidReason = null, voidedBy = null,
+            status = "ORDERED", voidReason = null, voidNote = null, voidedBy = null,
             createdAt = 1_000L, updatedAt = 1_000L, syncStatus = "SYNCED", deviceId = "dev-1",
         )
         val domain = entity.toDomain()
@@ -52,7 +52,7 @@ class OrderItemMapperTest {
         val entity = OrderItemEntity(
             id = "item-3", billId = "bill-1", menuItemId = "menu-1", nameSnapshot = "Es Teh",
             priceSnapshot = 5_000L, quantity = 1, selectedVariantsJson = "[]", lineTotal = 5_000L,
-            status = "VOID", voidReason = VoidReason.KITCHEN_ERROR.name, voidedBy = "user-1",
+            status = "VOID", voidReason = VoidReason.KITCHEN_ERROR.name, voidNote = null, voidedBy = "user-1",
             createdAt = 1_000L, updatedAt = 2_000L, syncStatus = "PENDING", deviceId = "dev-1",
         )
         val domain = entity.toDomain()
@@ -62,11 +62,24 @@ class OrderItemMapperTest {
     }
 
     @Test
+    fun `DEFECT-006 regression - voidNote round-trips through the mapper`() {
+        val entity = OrderItemEntity(
+            id = "item-5", billId = "bill-1", menuItemId = "menu-1", nameSnapshot = "Es Teh",
+            priceSnapshot = 5_000L, quantity = 1, selectedVariantsJson = "[]", lineTotal = 5_000L,
+            status = "VOID", voidReason = VoidReason.OTHER.name, voidNote = "Customer allergic to sugar",
+            voidedBy = "user-1", createdAt = 1_000L, updatedAt = 2_000L, syncStatus = "PENDING", deviceId = "dev-1",
+        )
+        val domain = entity.toDomain()
+        assertEquals("Customer allergic to sugar", domain.voidNote)
+        assertEquals(entity, domain.toEntity())
+    }
+
+    @Test
     fun `null menuItemId round-trips`() {
         val entity = OrderItemEntity(
             id = "item-4", billId = "bill-1", menuItemId = null, nameSnapshot = "Removed Item",
             priceSnapshot = 5_000L, quantity = 1, selectedVariantsJson = "[]", lineTotal = 5_000L,
-            status = "ORDERED", voidReason = null, voidedBy = null,
+            status = "ORDERED", voidReason = null, voidNote = null, voidedBy = null,
             createdAt = 1_000L, updatedAt = 1_000L, syncStatus = "PENDING", deviceId = "dev-1",
         )
         val domain = entity.toDomain()

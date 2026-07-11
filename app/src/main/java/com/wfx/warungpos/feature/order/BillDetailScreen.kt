@@ -345,6 +345,9 @@ private fun VoidReason.label(): String = when (this) {
     VoidReason.ITEM_UNAVAILABLE -> "Item Unavailable"
     VoidReason.TEST -> "Test Order"
     VoidReason.OTHER -> "Other"
+    // Not user-selectable (absent from VOID_REASONS) — only ever set programmatically when a
+    // whole bill is voided and its items are cascade-voided as a side effect. See DEFECT-009.
+    VoidReason.BILL_VOID -> "Bill Voided"
 }
 
 @Composable

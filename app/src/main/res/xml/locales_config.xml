@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEFECT-015: declares the app's supported per-app languages so this shows up in Android
+     Settings > Apps > Warung POS > Language (in addition to the in-app Language screen, which
+     calls LocaleManager.setApplicationLocales() directly — see LocaleHelper.kt). Must list every
+     locale a values-*/ resource qualifier exists for. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="id" />
+</locale-config>

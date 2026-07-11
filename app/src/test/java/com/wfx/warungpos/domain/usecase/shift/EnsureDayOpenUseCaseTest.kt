@@ -115,6 +115,24 @@ class EnsureDayOpenUseCaseTest {
         assertEquals(1, shiftRepository.shifts.size)
         assertEquals(ShiftStatus.OPEN, shiftRepository.shifts[shift.id]!!.status)
     }
+
+    @Test
+    fun `DEFECT-003-008 regression - openShiftIfNoneOpen rejects a second open while one is already open`() = runTest {
+        val shiftA = Shift(
+            id = "shift-a", openedBy = "user-1", closedBy = null, status = ShiftStatus.OPEN,
+            openedAt = 100L, closedAt = null, openingFloat = 0L, closingFloat = null,
+            updatedAt = 0L, syncStatus = SyncStatus.PENDING, deviceId = "dev",
+        )
+        val shiftB = shiftA.copy(id = "shift-b", openedAt = 200L)
+
+        val firstOpened = shiftRepository.openShiftIfNoneOpen(shiftA)
+        val secondOpened = shiftRepository.openShiftIfNoneOpen(shiftB)
+
+        assertTrue(firstOpened)
+        assertFalse(secondOpened)
+        assertEquals(1, shiftRepository.shifts.values.count { it.status == ShiftStatus.OPEN })
+        assertEquals("shift-a", shiftRepository.getOpenShift()!!.id)
+    }
 }
 
 class CheckSoldOutItemsUseCaseTest {

@@ -86,6 +86,7 @@ class ConfirmOrderUseCase @Inject constructor(
                     lineTotal = pricePerUnit * cartItem.quantity,
                     status = OrderItemStatus.ORDERED,
                     voidReason = null,
+                    voidNote = null,
                     voidedBy = null,
                     createdAt = now,
                     updatedAt = now,

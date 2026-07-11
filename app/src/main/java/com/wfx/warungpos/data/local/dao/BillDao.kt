@@ -36,6 +36,12 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE status = 'OPEN' ORDER BY createdAt DESC")
     suspend fun getOpenBills(): List<BillEntity>
 
+    /** DEFECT-003/008: shift-scoped counterpart to [getOpenBills] — Close Day's "N open bills"
+     * blocking count and the auto-close-on-rollover check must only look at the shift actually
+     * being closed, not every open bill across every shift that has ever existed. */
+    @Query("SELECT * FROM bills WHERE status = 'OPEN' AND shiftId = :shiftId ORDER BY createdAt DESC")
+    suspend fun getOpenBillsForShift(shiftId: String): List<BillEntity>
+
     @Query("SELECT * FROM bills WHERE syncStatus = 'PENDING'")
     suspend fun getPendingSync(): List<BillEntity>
 }

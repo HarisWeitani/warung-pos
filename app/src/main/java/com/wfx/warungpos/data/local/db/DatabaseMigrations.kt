@@ -73,3 +73,33 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pending_stock_deductions_stockItemId` ON `pending_stock_deductions` (`stockItemId`)")
     }
 }
+
+// DEFECT-003/008: a client-side check-then-act race let multiple `shifts` rows end up
+// simultaneously OPEN (fixed going forward by ShiftDao.openIfNoneOpen's transactional guard).
+// This is a pure data repair for installs that already have that corruption: keep only the
+// most-recently-opened OPEN shift, force-close the rest. No schema/column change, so no Room
+// schema-validation risk — just a version bump to run the repair exactly once on upgrade.
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            UPDATE `shifts`
+            SET status = 'CLOSED',
+                closedAt = COALESCE(closedAt, (strftime('%s','now') * 1000)),
+                syncStatus = 'PENDING'
+            WHERE status = 'OPEN'
+            AND id NOT IN (
+                SELECT id FROM `shifts` WHERE status = 'OPEN' ORDER BY openedAt DESC LIMIT 1
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+// DEFECT-006: the "Other" void reason's required note was validated at submit time but had no
+// column to be written to — silently discarded. Adds the missing column.
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `order_items` ADD COLUMN `voidNote` TEXT")
+    }
+}

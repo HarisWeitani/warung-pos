@@ -10,6 +10,7 @@ interface BillRepository {
     suspend fun getBill(id: String): Bill?
     suspend fun saveBill(bill: Bill)
     suspend fun getOpenBills(): List<Bill>
+    suspend fun getOpenBillsForShift(shiftId: String): List<Bill>
     suspend fun getPaidBillsForShift(shiftId: String): List<Bill>
     suspend fun getPaidBillsInRange(startEpoch: Long, endEpoch: Long): List<Bill>
 }

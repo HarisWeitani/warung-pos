@@ -27,7 +27,9 @@ were captured on the fresh instance.
 
 ## File 01 (`01-authentication-pin.md`) — COMPLETE
 
-**25 cases executed: 23 PASS, 0 FAIL, 2 NOT RUN (environment constraints).**
+**25 cases executed: 24 PASS, 0 FAIL, 1 NOT RUN (environment constraint).** (TC-AUTH-032 retested and passed
+2026-07-10 — see its row below; TC-AUTH-092 remains NOT RUN, requires an API 26 AVD not available in this
+environment.)
 **2 new Critical/High security defects discovered** that were not anticipated by the original static-analysis-based
 suite — both affect the "Lock App" feature specifically, in two independent ways:
 
@@ -153,7 +155,7 @@ local dataset for the remainder of this file, so no further shared-cloud interac
 | TC-AUTH-052 | Back on PIN screen does not bypass | High | ✅ **PASS** | Back exited to launcher; reopening still required PIN — never bypassed |
 | TC-AUTH-090 | Verify no email/password login exists | Medium | ✅ **PASS** | No login/email/password/logout UI found anywhere in the app |
 | TC-AUTH-091 | Verify single role — all features visible | Medium | ✅ **PASS** | Reports tab + full Dashboard opened freely; More header chip = "Owner" |
-| TC-AUTH-032 | Config change preserves unlocked state | Low | ⚪ **NOT RUN** | Reliable config-change simulation (rotation/font-size) not attempted via adb on this portrait-oriented app; needs manual verification |
+| TC-AUTH-032 | Config change preserves unlocked state | Low | ✅ **PASS** (retest 2026-07-10) | `adb shell settings put system user_rotation 1` (portrait→landscape) while unlocked on Orders → correctly relaid out in landscape, bottom nav/FAB intact, `mResumed=true`/`mFinished=false` throughout, no re-lock. Rotated back to portrait → same, no crash. `isUnlocked` lives in the process-scoped `SessionManager` singleton, not Activity state, so it survives Activity recreation on rotation as expected. |
 | TC-AUTH-092 | EncryptedSharedPreferences on API 26 | Medium | ⚪ **NOT RUN** | Only an API 33 emulator was available this session; requires a dedicated API 26 AVD |
 
 ---
@@ -454,6 +456,27 @@ data), `a007_locked2.xml` (2nd stale REGISTER screen — proves persistence), `a
 `'Hacker'`), `a007_cold_after.xml` (`'Hi, Hacker'` — overwrite confirmed post-restart), `a007_oldpin_fail.xml`
 (`'Incorrect PIN'` for the original 32-digit PIN), `a007_final_unlock.xml` (unlocks with `0000`).
 
+### Retest — 2026-07-10 — FIX VERIFIED
+A code change (uncommitted in the working tree at retest time) addresses this exactly along the lines suggested
+above: `WarungPosApp.kt` now wraps the `!isUnlocked` branch's `pinVm` in `LaunchedEffect(Unit) { pinVm.refreshMode() }`,
+and `PinViewModel.refreshMode()` (new) re-derives `mode` from live `sessionManager.isRegistered` state and resets
+the form fields, each time the PIN gate re-enters composition. Since the branch unmounts/remounts on every
+lock↔unlock transition, this now fires on every Lock, not just the first `PinViewModel` construction.
+
+Re-ran the exact trigger condition on `emulator-5554` (API 33): fresh install → register `Budi`/`1234` → **More →
+Lock App → Lock, with no process restart since registration** (the precise, previously-100%-reproducible bypass
+window). Result: the unlock screen correctly showed `'Hi, Budi'` + a single empty PIN field, **not** the stale
+REGISTER form. Submitting a wrong PIN (`9999`) was correctly rejected (`'Incorrect PIN'`, credentials untouched);
+submitting the real PIN (`1234`) unlocked normally. Repeated a second Lock/Unlock cycle in the same process with
+the same result. A cold relaunch (`am force-stop` + relaunch) afterward also correctly showed `'Hi, Budi'`,
+confirming the registered credentials were never overwritten. New instrumented regression test:
+`app/src/androidTest/java/com/wfx/warungpos/feature/auth/PinViewModelTest.kt` (2 cases, both pass on-device via
+`./gradlew :app:connectedDebugAndroidTest`).
+
+**Not yet fixed/covered by this change:** nothing further identified for this specific defect — the trigger
+condition described above no longer reproduces. Note the fix is **uncommitted** as of this retest; treat this
+defect as fixed-pending-commit, not fixed-and-merged.
+
 ---
 
 ## TC-AUTH-010 — Unlock happy path after registration — ✅ PASS
@@ -598,6 +621,21 @@ transition.
 `a030_locked.xml` / `a030b_locked.xml` (pre-filled 4-dot PIN field immediately after Lock, no interaction),
 `a030b_result.xml` (unlocked via blind tap, twice), `a030_final.xml` (contrast: empty field after real process
 death), `a030_blindtap.xml` (contrast: blind tap correctly fails after process death).
+
+### Retest — 2026-07-10 — FIX VERIFIED (as a side effect of the DEFECT-001 fix)
+The same `PinViewModel.refreshMode()` change that fixes DEFECT-001 (see that entry's retest note) also resets
+`pin`/`confirmPin`/`username` to `""` every time the PIN gate re-enters composition — i.e. on every Lock, not
+just the first one. This closes DEFECT-002 as a side effect, since the stale-PIN-buffer condition this defect
+depended on (the field silently retaining the last-used correct PIN across a Lock) no longer holds.
+
+Re-ran the exact repro on `emulator-5554`: unlocked with the real PIN (`1234`), used **More → Lock App → Lock**,
+then immediately tapped **Unlock with zero digits typed** (no tap on the PIN field, no characters entered) — a
+UI dump confirmed the PIN field was genuinely empty going in. Result: `'Incorrect PIN'` shown, app remained
+locked — matching the correct (TC-AUTH-030-style) behavior, not the old blind-tap bypass. Repeated once more
+after a second Lock cycle in the same process with the same result.
+
+**Not yet fixed/covered by this change:** nothing further identified — the blind-tap bypass no longer
+reproduces. Same caveat as DEFECT-001: the fix is **uncommitted** as of this retest.
 
 ---
 
@@ -900,6 +938,16 @@ opens its own new shift — if a remote open day already exists and is newer, ad
 second one. Orphaned shifts already in the dataset would need a one-time manual reconciliation (e.g. close all
 but the most recent, or merge their bills under one canonical shift) since there is currently no in-app tool to
 do this.
+
+> **Note (added retrospectively, file 08):** This is the same root-cause defect independently rediscovered
+> later in the session and written up in more depth as **DEFECT-008** (13 OPEN shifts by that point, up from
+> 11 here) — that entry adds a **live-reproduced concrete instance of real revenue misattribution** (a bill
+> landing on a 2-day-old stale shift instead of the one just opened for "today") and traces the downstream
+> interaction with `BillDao.getOpenBills()` being unscoped, which makes Close Day's "N open bills" blocking
+> count global rather than per-shift. Treat DEFECT-003 and DEFECT-008 as **one issue** for prioritization/fix
+> purposes — this entry has the earliest/cleanest repro and root-cause trace; DEFECT-008 has the sharper
+> business-impact evidence. Not consolidated into a single numbered entry after the fact to avoid renumbering
+> every cross-reference to defects 004–015 throughout this log.
 
 ### Evidence
 DB queries against `dbpull/warung_pos_db` (+ `-wal`) at two points in the session (3 open shifts at TC-AUTH-001,
@@ -2309,6 +2357,11 @@ in this entire session.**
 
 ### DEFECT-008 detail
 
+> **Duplicate note:** This is the same root-cause defect as **DEFECT-003** (file 01/02, found independently
+> earlier in the session at 11 OPEN shifts, before the connection to this later finding was made). See
+> DEFECT-003's write-up for the earliest repro and root-cause trace; this entry adds the live-reproduced
+> revenue-misattribution instance and the `getOpenBills()` global-scoping interaction. Treat as one issue.
+
 **Summary:** No mechanism (unique constraint, sync reconciliation, or client-side merge logic) prevents multiple
 `shifts` rows from holding `status='OPEN'` at once. `ShiftDao.getOpenShift()` is
 `SELECT * FROM shifts WHERE status = 'OPEN' LIMIT 1` — no `ORDER BY` — so which row is treated as "the" current
@@ -2625,7 +2678,8 @@ snapshot against live quantity at submit time and warn on divergence).
 ## File 12 (`12-reports-dashboard.md`) — COMPLETE (partial coverage)
 
 **11 cases executed to a verdict (10 PASS, 1 FAIL), 13 NOT RUN (mostly clock-control-dependent, per the suite's
-own assessment).**
+own assessment).** (TC-RPT-022 retested and passed 2026-07-10 — see its row below; counts above reflect the
+original pass, now 12 PASS / 1 FAIL / 12 NOT RUN.)
 **1 new defect, with two related sub-findings in the same feature area.**
 
 | ID | Severity | One-line summary |
@@ -2681,9 +2735,9 @@ confirming the figure summed prior-day test data, not "today").
 | TC-RPT-015 | "Gross Profit" is revenue − expenses, not COGS-based | ✅ PASS (confirms gap) | Verified with real, substantial numbers in Week mode: Revenue Rp 230.000 − Expenses Rp 1.000.060.777 = Gross Profit **Rp -999.830.777** exactly, confirming the figure is a plain subtraction with no COGS/ingredient-cost basis — matches the already-catalogued gap D-12. |
 | TC-RPT-016 | Expenses-by-category breakdown | ✅ PASS | Week mode correctly grouped SUPPLIES (Rp 1.000.057.777) and OTHER (Rp 3.000), summing exactly to total Expenses. |
 | TC-RPT-017 | Best Sellers sub-screen shares the report's range | ✅ PASS | Opened from the Week-mode Full Report; the sub-screen showed the identical 5-item Week-range ranking (not reset to Day), confirming the shared/scoped ViewModel behaves as documented. |
-| TC-RPT-020 | Export produces a CSV and opens the share sheet | ✅ PASS | Tapping Share opened the Android system share sheet with `warungpos_report_1783531431173.csv` offered to Drive/Gmail/Quick Share — matches the documented naming pattern exactly; no PDF option present (confirms gap D-11). |
+| TC-RPT-020 | Export produces a CSV and opens the share sheet | ✅ PASS | Tapping Share opened the Android system share sheet with `warungpos_report_1783531431173.csv` offered to Drive/Gmail/Quick Share — matches the documented naming pattern exactly. **Update 2026-07-10:** at original test time, no PDF option existed (confirmed gap D-11). A PDF-export code change has since landed (commit `7410026`, uncommitted-at-retest-time changes aside) — retested and the export menu now offers both "Export as CSV" and "Export as PDF"; both produce a working share sheet (see TC-RPT-022 retest below). **Gap D-11 is closed** — `00-assumptions-and-gaps.md` should be updated accordingly. |
 | TC-RPT-021 | CSV content matches on-screen figures | ✅ PASS | Pulled the actual cached CSV (`run-as` + `find`/`cat`, since the share sheet itself can't be scripted) and diffed it against the screen: `Revenue,230000` / `Expenses,1000060777` / `Gross Profit,-999830777`, full `Payment Method,Total` and `Expense Category,Total` sections, `Void Count,1` / `Void Value,5000`, and a 5-row `Item,Qty,Revenue` best-sellers section — every figure matched the on-screen Week report exactly. Payment method rows use raw IDs in the export too (same known Minor gap). |
-| TC-RPT-022 | Export an empty report (no crash) | ⚠️ NOT RUN | No empty-range scenario was staged; low priority/severity, not worth engineering a dedicated empty window for. |
+| TC-RPT-022 | Export an empty report (no crash) | ✅ **PASS** (retest 2026-07-10) | Selected a Custom range (Jul 1–2, 2026) with zero transactions — screen correctly rendered Rp 0 across Revenue/Expenses/Gross Profit/Voided, no Payment Methods section (nothing to break down), "View Best Sellers (0)". Tapped the export icon: **both** "Export as CSV" and "Export as PDF" (new since the original pass — see TC-RPT-020) completed successfully on the empty dataset, share sheet opened correctly both times (`warungpos_report_<ts>.csv` / `.pdf`), no crash. **Minor observation (not logged as a numbered defect):** logcat shows a non-fatal `SecurityException` on each export — `Permission Denial: reading androidx.core.content.FileProvider uri ... requires the provider be exported, or grantUriPermission()`, thrown by the system (`uid=1000`) while generating a preview thumbnail/icon for the share sheet. The share sheet still opens and works (falls back to a generic file icon); this doesn't block the actual export/share flow. Worth a look at the `FileProvider` grant flags on the share `Intent` if a polished preview icon in the share sheet matters. |
 | TC-RPT-023 | Reports reflect only PAID bills | ✅ PASS | Confirmed implicitly across every mode tested: 1 currently-OPEN bill and 27 VOID bills exist in the DB, none of which contributed to any Revenue/Transactions/Payment-breakdown figure in Day or Week mode — only the 13 PAID bills' `grandTotal` sum (Rp 230.000) appeared, matching exactly. |
 | TC-RPT-024 | Large dataset performance-scenario | ⚠️ NOT RUN | Requires seeding ~12 months of data; suite marks "Automation Candidate: No", performance measurement out of scope for this pass. |
 
@@ -2706,8 +2760,9 @@ confirming the figure summed prior-day test data, not "today").
 **All 23 cases in this file are marked "Automation Candidate: No" by the suite's own authors** — every one
 requires either a second physical/emulated device on the same Firebase project, direct RTDB console access, or
 precise mid-flight network-timing control, none of which are available in this single-device, no-console
-environment. 5 cases were confirmed or partially confirmed via what a single device *can* observe; the rest are
-NOT RUN, consistent with the suite's own assessment.
+environment. 5 cases were confirmed or partially confirmed via what a single device *can* observe; TC-SYNC-032
+was retested and passed 2026-07-10 (it turned out to be single-device-testable despite its 030–033 grouping);
+the rest are NOT RUN, consistent with the suite's own assessment.
 
 ### ⚠️ Incident: this session's local test data synced to the shared Firebase project
 
@@ -2739,18 +2794,35 @@ in this testing session's own network-toggling action.
 | TC-SYNC-004 | Status bar hidden when online and idle | ⚠️ **INCONCLUSIVE** | After disabling network again (ending the incident above), the bar did not reappear as OFFLINE for ~20+ seconds while the app kept running — it stayed in whatever hidden/blank state it was in during the prior SYNCING phase. A cold relaunch while offline correctly showed the OFFLINE bar immediately. This suggests `NetworkMonitor`'s live `onLost` re-detection may not reliably fire when connectivity is toggled via `svc wifi/data disable` (as opposed to true airplane-mode radio-off) in this emulator environment — plausibly a testing-tool artifact rather than a confirmed app defect (the source, `NetworkMonitor.kt`, looks logically correct: `onLost` re-checks `activeNetwork` rather than assuming offline). Not logged as a numbered defect given the ambiguity; noted for a future pass with true airplane-mode toggling to disambiguate. |
 | TC-SYNC-010 | Pending writes flush to RTDB on reconnect | ✅ PASS (incidental) | See the incident write-up above — every one of the large backlog of PENDING rows across 5 different tables flushed and flipped to SYNCED with no rows left stuck, confirming the core mechanism works as documented (gap F-1's race was not observed here, though this single incidental data point doesn't rule it out under different timing). |
 | TC-SYNC-013 | Version gate / sync never blocks offline usage | ✅ PASS | Confirmed cumulatively — no blocking screen from sync/version-gate logic was ever encountered offline across the entire session (files 01–12), including cold starts while offline. |
+| TC-SYNC-032 | Force-close during pending sync | ✅ **PASS** (retest 2026-07-10) | See detail below — single-device-observable, does not require a second device despite sitting in the 030–033 range. |
+
+### TC-SYNC-032 — Force-close during pending sync — ✅ PASS (2026-07-10)
+
+**Steps:** Went offline (`svc data disable` + `svc wifi disable`). Created a new bill (`Counter - 22:43`), added
+1× EsTeh (Rp 5.000), paid in full (Tunai). Pulled the Room DB and confirmed the bill/payment/order-item rows were
+written with `syncStatus='PENDING'`. Force-stopped the app (`am force-stop`) — killing the process before it ever
+had a chance to attempt a sync (device was still offline). Re-enabled network (`svc data enable` + `svc wifi
+enable`, confirmed reachable via `ping 8.8.8.8`), then relaunched. The lock screen correctly showed the amber
+"Syncing..." bar, which cleared a few seconds later; unlocked with the real PIN.
+
+**Result:** Re-pulled the DB — exactly **one** bill row for `Counter - 22:43` (no duplicate created by the
+force-close), `status=PAID`, `syncStatus` flipped from `PENDING` → `SYNCED`; its payment row likewise flipped to
+`SYNCED`; exactly one order-item row, no duplication. No crash, no re-entry into a broken/partial state. The
+pending-sync mutation survived the process kill intact and synced cleanly once connectivity returned.
 
 ### Not run
 
 TC-SYNC-011, 012 (sync race/retry timing), 020–025 (two-device inbound propagation and conflict resolution),
-030–033 (multi-device/reinstall/reboot recovery), 040 (bulk-flush performance scenario), 050 (split-brain,
-directly relevant to — and likely to reproduce — DEFECT-008's root cause but requiring 2 genuinely independent
-devices to test as designed), 051–052 (Firebase console/security-rules config) — all require infrastructure
-(second device, RTDB console, precise mid-sync network control) unavailable in this environment. Consistent with
-the suite authors' own "Automation Candidate: No" marking on every one of these.
+030, 031, 033 (multi-device/reinstall/reboot recovery — TC-SYNC-032 was single-device-testable and is now PASS,
+see above), 040 (bulk-flush performance scenario), 050 (split-brain, directly relevant to — and likely to
+reproduce — DEFECT-008's root cause but requiring 2 genuinely independent devices to test as designed), 051–052
+(Firebase console/security-rules config) — all require infrastructure (second device, RTDB console, precise
+mid-sync network control) unavailable in this environment. Consistent with the suite authors' own "Automation
+Candidate: No" marking on every one of these.
 
 **Evidence:** `tc_sync003a.xml`–`tc_sync_unlocked.xml`, `dbcheck82.db` (post-sync `SYNCED` state across all
-tables).
+tables), `wp_before.db`/`wp_after.db` (TC-SYNC-032's before/after Room DB pulls, deleted from the scratch dir
+after comparison — the query results are captured verbatim above).
 
 ---
 
@@ -2816,7 +2888,7 @@ unchanged), `tc_set002h.xml` (post-cold-restart, still unchanged), `tc_set004b.x
 | TC-SET-007 | About screen shows version | ✅ PASS | "Warung POS" / "Version 1.0 (1)" displayed; Back correctly returned to More. |
 | TC-SET-008 | Settings sub-screens reachable and Back-navigable | ✅ PASS | Reconfirmed for About specifically this file; already exhaustively demonstrated for Payment Methods, Expense Categories, Menu Management, and Language throughout the entire session (dozens of successful round-trips with no crash or lost-tab-state). |
 | TC-SET-009 | Rapid language toggling does not corrupt the UI | ✅ PASS | 6 rapid alternating taps (English/Indonesian ×3) → no crash; final state correctly settled on the last-tapped option (Bahasa Indonesia), confirmed via the radio button's `checked` state. |
-| TC-SET-010 | Untranslated key falls back to English | ⚠️ NOT RUN | Requires a source-level diff between `values/` and `values-id/` to find a genuinely missing key (both files currently define the same key set, just noted `nav_order`'s literal-value-equals-English case above) — suite marks "Automation Candidate: No"; low priority/severity, not pursued further given DEFECT-015 already demonstrates the broader i18n mechanism is compromised. |
+| TC-SET-010 | Untranslated key falls back to English | ✅ **PASS-by-inapplicability** (retest 2026-07-10) | Directly diffed the key sets of `app/src/main/res/values/strings.xml` and `values-id/strings.xml` (35 keys each) — confirmed programmatically (not just by inspection) that the two files define **exactly the same 35 keys**, zero missing either direction. There is currently no genuinely-missing key anywhere in the app to exercise Android's resource-fallback mechanism with, so this case has no scenario to test — same conclusion as the original pass, now independently re-verified rather than inferred. (Incidentally also confirmed 3 keys — `app_name`, `nav_order`, `auth_email` — have identical EN/ID text; `nav_order`="Order" in both is a plausible incomplete-translation, unrelated to DEFECT-015's broader "switching language has zero visible effect" finding, which is a different mechanism.) |
 
 **Evidence:** `tc_set001a.xml`–`tc_set009a.xml`.
 
@@ -2932,7 +3004,7 @@ see the Blocker/Critical defects list below.
 | R4-3 | TC-PAY-019 | Offline payment then sync | ✅ PASS |
 | R4-4 | TC-NAV-023 | Force-close mid-order | ✅ PASS |
 | R4-5 | TC-AUTH-030 | Process death → locked | ✅ PASS |
-| R4-6 | TC-SYNC-032 | Force-close during pending sync | ⚠️ NOT RUN |
+| R4-6 | TC-SYNC-032 | Force-close during pending sync | ✅ **PASS** (retest 2026-07-10 — see detail below) |
 
 ### R5 — Multi-device
 
@@ -2989,3 +3061,49 @@ stock/opname data-entry validation, day/shift integrity (the most severe — DEF
 dashboard/reports data-scoping, and language/i18n. Per the user's standing instruction, none of these defects
 were fixed during this session — this log is a pure test-execution record. Fixing them, if desired, is a
 separate, explicitly-requested follow-on task.
+
+### Addendum — 2026-07-10 follow-up session
+
+Two things happened in a later session, both reflected inline above rather than re-litigated here:
+
+1. **DEFECT-001 and DEFECT-002 (Auth / Lock App) were fixed in code** (`PinViewModel.refreshMode()` +
+   `WarungPosApp.kt`'s `LaunchedEffect`) and re-verified against their exact original repro steps — see the
+   "Retest — 2026-07-10 — FIX VERIFIED" notes under each defect's write-up. The fix is uncommitted as of this
+   note. This is the one exception to "none of these defects were fixed during this session" above — it happened
+   in a subsequent session, not the original one.
+2. **5 previously NOT-RUN cases that turned out to be single-device-testable were executed and passed**:
+   TC-AUTH-032 (config-change/rotation preserves unlocked state), TC-SYNC-032 (force-close during a pending
+   sync — no duplication, `PENDING`→`SYNCED` on reconnect), TC-RPT-022 (export an empty date range, both CSV and
+   PDF, no crash), TC-SET-010 (re-confirmed programmatically — no genuinely-missing resource key exists to
+   fall back with), and TC-RPT-020 was re-confirmed with a twist: **PDF export now exists** (it didn't at
+   original test time), closing gap **D-11** in `00-assumptions-and-gaps.md`. See each case's row/detail section
+   above for full evidence. All other NOT RUN cases remain genuinely blocked on infrastructure this environment
+   doesn't have (second device, Firebase RTDB console, device clock control) or on a long real-time idle window
+   (TC-NAV-025) — none of those were reattempted.
+
+### Addendum — 2026-07-11 fix pass: all remaining defects closed
+
+A further follow-up session fixed every remaining open defect from this suite (DEFECT-003/008 through
+DEFECT-015 — the full list below), re-verified each against its original repro, and added automated regression
+coverage (unit and/or instrumented tests, plus direct on-device/DB verification for UI- and persistence-level
+fixes) so each stays fixed. **All changes below are uncommitted as of this note.** Full unit + instrumented
+suites pass: 128 unit tests, 35 instrumented tests, zero failures.
+
+| ID | Fix | Verification |
+|----|-----|---------------|
+| **DEFECT-003/008** | `ShiftDao.openIfNoneOpen()` — a new `@Transaction` DAO method atomically checks-then-inserts, closing the check-then-act race that let two callers (`AppViewModel` session-start, `OrderViewModel` per-bill) both open a shift. `BillDao.getOpenBillsForShift(shiftId)` added and wired into `CloseShiftUseCase`/`EnsureDayOpenUseCase`, replacing the unscoped global `getOpenBills()`. `MIGRATION_4_5` repairs any pre-existing duplicate-OPEN corruption on upgrade (keeps the most-recently-opened, force-closes the rest) — pure data repair, no schema change. | New `ShiftDaoTest` — including a genuine 20-way concurrent-coroutine test on `Dispatchers.Default` against a real Room DB, confirming exactly one shift ever ends up OPEN. New `BillDaoTest` cases for the scoped query. Migration SQL sanity-checked against a synthetic SQLite table. |
+| **DEFECT-009** | `VoidBillUseCase` now cascades: after voiding the bill, it fetches the bill's still-active `order_items` and voids each one too (new `VoidReason.BILL_VOID`), so the Z-report void audit (which only counts `order_items.status='VOID'`) correctly reflects whole-bill voids. | New `VoidBillUseCaseTest` case asserting cascade + that already-voided items aren't double-touched. |
+| **DEFECT-010** | Added `ZReportSnapshot` domain model + `ZReport.toSnapshot()` mapper (parses the JSON `GenerateZReportUseCase` already wrote). `ZReportViewModel` now reads the persisted snapshot first (falling back to live re-derivation only if a closed shift somehow has no Z-report row) and exposes `countedCash`/`expectedCash`/`variance`/`voidCount`/`voidValue`. `ZReportScreen` gained "Cash Reconciliation" and "Void Summary" cards. | New `toSnapshot()` tests in `ZReportMapperTest` (including malformed-JSON → null, not a crash) using the exact JSON shape `GenerateZReportUseCase` produces. |
+| **DEFECT-011** | New shared `filterDecimalInput()` helper (keeps digits + at most one `.`) replaces the buggy `filter { isDigit() || it=='.' }` pattern in all 3 affected fields: `StockViewModel` (reorder threshold), `StockBatchViewModel` (batch qty), `StockOpnameViewModel` (counted qty). | New `DecimalInputFilterTest` (4 cases, including the exact `"2.5.1"` repro). |
+| **DEFECT-013** | `StockOpnameViewModel.onCountedQtyChange()`/`onReasonChange()` now persist each edit to the `stock_opname_lines` row immediately via `saveLine()` (skipped only when the counted-qty text doesn't parse yet, e.g. a bare `""` mid-retype, so a transient invalid state can't stomp a previously-saved real count). `loadLines()` (called on every ViewModel recreation, i.e. every navigate-away-and-back) now reads the draft back instead of stale data. | New `StockOpnameViewModelTest` (3 cases) simulating ViewModel recreation against a shared fake repository — confirms a typed count and a variance reason both survive, and that an incomplete edit doesn't overwrite a valid saved count. |
+| **DEFECT-014** | (a) `DashboardScreen` gained an "Expenses" card (`state.totalExpenses` was already computed and available, just never rendered) plus a Net row. (b) `ReportsScreen`'s shift-scoped card relabeled "Current Shift Summary" / "Shift started: …" (was "Day Summary" / "Day started: …", sitting directly under a genuinely day-scoped "Today's Dashboard" link) — a labeling fix, not a rescoping, since the shift-scoped quick-glance appears to be intentional given the separate day-scoped Dashboard already exists. | Manual verification only (pure Compose UI text changes, no new logic to unit-test); full suites still pass. |
+| **DEFECT-015** | Root cause was actually two independent bugs. (1) The existing locale-switching mechanism (`ContextThemeWrapper` + `CompositionLocalProvider` override in `WarungPosApp.kt`) never worked — replaced with the platform `LocaleManager` API (API 33+) called directly (`core/util/LocaleHelper.kt`), from `WarungPosApplication.onCreate()` for cold start and `LanguageSettingsViewModel.setLanguage()` for in-session changes. `AppCompatDelegate.setApplicationLocales()` was tried first and confirmed empirically to silently no-op without an `AppCompatActivity` (this app uses a plain `ComponentActivity`; migrating the whole theme to AppCompat/MaterialComponents was judged out of scope) — see the code comment in `LocaleHelper.kt` for the full trail. (2) Even with the locale correctly applied, Indonesian strings still didn't show: Java/Android canonicalizes the Indonesian locale's language code to the legacy `"in"` (not modern `"id"`) when constructed via `LocaleList.forLanguageTags("id")`, and the app's translated resources lived in `values-id/` — a folder-name mismatch that resource resolution wasn't aliasing across in this code path. Fixed by renaming the resource folder to `values-in/` (verified empirically: `values-id/` alone did not resolve, `values-in/` did). Added `android:localeConfig` + `locales_config.xml` for bonus system-Settings integration (not required for the fix itself). | Confirmed on-device via `adb shell cmd locale get-app-locales` (correctly reports `[id]`) and visually: bottom nav shows "Laporan"/"Lainnya" by default and switches to "Reports"/"More" live, in-session, with no restart, when English is selected — the exact original repro (bottom nav was the one integration point the requirements doc claimed worked and didn't). |
+| **DEFECT-004** | `BillDetailViewModel.addItem()`'s read-modify-write (read a line's `quantity`, write `quantity+1`) is now wrapped in a `Mutex`, serializing concurrent invocations from rapid taps (each tap launches its own coroutine) so no increment can be silently lost to interleaving. | New `AddItemRaceConditionTest` — 30 concurrent coroutines on `Dispatchers.Default` (genuine multi-threaded concurrency, not just single-thread interleaving) against a shared fake repository, confirming the final quantity always exactly matches the tap count. Manual on-device rapid-tap testing was attempted but proved too noisy (sheet animation/layout-shift timing) to be a reliable signal either way; the automated concurrent test is the real verification. |
+| **DEFECT-005** | `PaymentViewModel` already set `state.error` correctly on a blocked payment (e.g. underpaid cash) — `PaymentScreen` just never displayed it. Added an `AlertDialog` (same pattern as `BillDetailScreen`'s void-error dialog) plus `PaymentViewModel.dismissError()`. | New `PaymentScreenTest` cases (instrumented): error text is displayed, and dismissing invokes the callback. Note: instrumented test method names can't contain spaces here (DEX build failure below API 40) — camelCase used instead of this file's usual backtick-space style. |
+| **DEFECT-006** | Added the missing `voidNote` column (`order_items`, `MIGRATION_5_6`) and threaded it end-to-end: entity → domain model → mapper → `OrderItemDao.voidItem()` → `OrderRepository.voidItem()` → `VoidOrderItemUseCase` → RTDB sync mapping (`EntityMapping.kt`, both push and pull). The "Other" reason's required note is now actually persisted instead of being validated then discarded. | New `OrderItemMapperTest`/`VoidOrderItemUseCaseTest` cases round-tripping a non-null `voidNote`. |
+| **DEFECT-007** | `VariantGroupEditor`'s name/price-delta `OutlinedTextField`s were fully controlled by state that round-tripped through `updateGroup()`/`updateOption()` (DB write + full reload of every group/option on *every keystroke*) — fast typing could render against a stale or reordered value mid-flight. Added `remember(id) { mutableStateOf(...) }` local buffers for group name, option name, and option price, keyed on the stable id (correctly reinitializes if the list reorders/an item is deleted). The price field also used to display a *reformatted* `priceDelta.toString()`, so typing a leading `"-"` for a negative delta parsed to `null` → fell back to `0` → immediately erased the `-` before the digits could follow; buffering the raw typed text fixes that too. | Manual on-device verification: typed a 33-character name and a `-1500` price both in one fast `adb input text` burst, confirmed byte-for-byte correct both on-screen (`uiautomator dump`) and in the persisted DB (`variant_groups`/`variant_options`, WAL-inclusive read). |
+
+**Not touched:** DEFECT-001/002 (already fixed in the prior 2026-07-10 session, see above) and gap D-11 (already
+closed in the same prior session). No new defects were introduced or discovered during this pass — the full
+unit + instrumented suites (128 + 35 tests) pass cleanly, and every fix was verified against its documented
+repro, not just compiled.

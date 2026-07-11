@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -99,6 +100,21 @@ fun DashboardScreen(
                 }
             }
 
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Expenses", style = MaterialTheme.typography.titleMedium)
+                        DashboardLabelValueRow("Total Expenses", CurrencyFormatter.format(state.totalExpenses))
+                        HorizontalDivider()
+                        DashboardLabelValueRow(
+                            label = "Net",
+                            value = CurrencyFormatter.format(state.totalRevenue - state.totalExpenses),
+                            bold = true,
+                        )
+                    }
+                }
+            }
+
             if (state.paymentBreakdown.isNotEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -137,6 +153,22 @@ private fun DashboardRow(breakdown: PaymentBreakdown) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(breakdown.paymentMethodId, style = MaterialTheme.typography.bodyMedium)
         Text(CurrencyFormatter.format(breakdown.total), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun DashboardLabelValueRow(label: String, value: String, bold: Boolean = false) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (bold) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 

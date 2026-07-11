@@ -36,11 +36,11 @@ interface OrderItemDao {
 
     @Query("""
         UPDATE order_items
-        SET status = 'VOID', voidReason = :reason, voidedBy = :voidedBy,
+        SET status = 'VOID', voidReason = :reason, voidNote = :voidNote, voidedBy = :voidedBy,
             updatedAt = :updatedAt, syncStatus = 'PENDING'
         WHERE id = :id
     """)
-    suspend fun voidItem(id: String, reason: String, voidedBy: String, updatedAt: Long)
+    suspend fun voidItem(id: String, reason: String, voidNote: String?, voidedBy: String, updatedAt: Long)
 
     @Query("UPDATE order_items SET status = 'DONE', updatedAt = :updatedAt, syncStatus = 'PENDING' WHERE id = :id")
     suspend fun markDone(id: String, updatedAt: Long)
