@@ -147,6 +147,8 @@ fun AppNavGraph(
                 onFloatChange = vm::onFloatChange,
                 onCloseShift = vm::closeShift,
                 onBack = { navController.popBackStack() },
+                onOtherShiftFloatChange = vm::onOtherShiftFloatChange,
+                onCloseOtherShift = vm::closeOtherShift,
             )
         }
 

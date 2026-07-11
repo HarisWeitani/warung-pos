@@ -9,6 +9,7 @@ import com.wfx.warungpos.data.local.entity.ShiftEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.After
@@ -85,5 +86,51 @@ class ShiftDaoTest {
             1,
             openShifts.size,
         )
+    }
+
+    /** DEFECT-016: [openIfNoneOpen] only guards against a *single device* racing itself. It does
+     * nothing to stop inbound sync (a plain [ShiftDao.upsert], not [openIfNoneOpen]) from writing
+     * a second, independently-opened OPEN shift that arrived from another device. These exercise
+     * [getAllOpenShifts]/[observeAllOpenShifts] against exactly that scenario — multiple OPEN rows
+     * that were never meant to coexist, but do. */
+    @Test
+    fun getAllOpenShifts_returnsEveryOpenRowNotJustTheNewest() = runBlocking {
+        // Simulates inbound sync: each write lands via plain upsert, bypassing the
+        // check-then-act guard entirely — exactly how a second device's shift would arrive.
+        dao.upsert(shift("shift-old", openedAt = 100L))
+        dao.upsert(shift("shift-newer", openedAt = 200L))
+        dao.upsert(shift("shift-newest", openedAt = 300L))
+
+        val allOpen = dao.getAllOpenShifts()
+        assertEquals(3, allOpen.size)
+        assertEquals(listOf("shift-newest", "shift-newer", "shift-old"), allOpen.map { it.id })
+        // getOpenShift() must still resolve to a single row (the newest) — this fix adds
+        // visibility into the others without changing which one is "current".
+        assertEquals("shift-newest", dao.getOpenShift()!!.id)
+    }
+
+    @Test
+    fun getAllOpenShifts_excludesClosedShifts() = runBlocking {
+        dao.upsert(shift("shift-open", openedAt = 100L))
+        val closed = shift("shift-closed", openedAt = 50L).copy(status = "CLOSED", closedAt = 60L)
+        dao.upsert(closed)
+
+        val allOpen = dao.getAllOpenShifts()
+        assertEquals(1, allOpen.size)
+        assertEquals("shift-open", allOpen.first().id)
+    }
+
+    @Test
+    fun observeAllOpenShifts_emitsUpdatedListAsShiftsChange() = runBlocking {
+        dao.upsert(shift("shift-a", openedAt = 100L))
+        dao.upsert(shift("shift-b", openedAt = 200L))
+
+        assertEquals(2, dao.observeAllOpenShifts().first().size)
+
+        // Closing one should drop it from the live query without a manual re-subscribe.
+        dao.upsert(shift("shift-a", openedAt = 100L).copy(status = "CLOSED", closedAt = 150L))
+        val afterClose = dao.observeAllOpenShifts().first()
+        assertEquals(1, afterClose.size)
+        assertEquals("shift-b", afterClose.first().id)
     }
 }

@@ -5,40 +5,79 @@ emulator (API 33), primarily offline, over a multi-day session. Full step-by-ste
 [`EXECUTION_LOG.md`](EXECUTION_LOG.md) (~3,100 lines) — this document is the scannable summary for whoever picks
 up this project next.
 
-**Scope note:** this began as a test-execution pass only. Three follow-up sessions then worked the defect list:
+**Scope note:** this began as a test-execution pass only. Four follow-up sessions then worked the defect list:
 - **2026-07-10** — DEFECT-001 and DEFECT-002 (Auth / Lock App) fixed.
-- **2026-07-11 (fix pass)** — every other then-open defect (DEFECT-003/008 through DEFECT-015) fixed.
+- **2026-07-11 (fix pass)** — every other then-open defect (DEFECT-003/008 through DEFECT-015) fixed. Committed
+  as [`1bb45c2`](../../.git).
 - **2026-07-11 (two-device session)** — a second emulator became available, unblocking E3 (multi-device) cases
-  for the first time. Found **DEFECT-016**, a new defect distinct from the earlier fixes — see below. Committed
-  as [`1bb45c2`](../../.git) — the 14 defects above are no longer just "uncommitted fixes," they're in `main`.
+  for the first time. Found **DEFECT-016**. Documentation-only commit [`63eae3e`](../../.git).
+- **2026-07-11 (DEFECT-016 fix session)** — implemented, tested, and verified a fix for DEFECT-016 (see below).
 
-**15 numbered defects found in total (DEFECT-001 through DEFECT-016). 14 are fixed and committed; DEFECT-016 is
-open and logged for the product owner, not fixed in-session (see below).** DEFECT-003 and DEFECT-008 are the
-same root-cause issue found twice. DEFECT-012 was never assigned — a candidate finding during file 11 was folded
-into DEFECT-011 instead of becoming its own entry, so the numbering has a deliberate gap, not a missing write-up.
+**15 numbered defects found in total (DEFECT-001 through DEFECT-016). All 15 are fixed and committed.**
+DEFECT-003 and DEFECT-008 are the same root-cause issue found twice. DEFECT-012 was never assigned — a candidate
+finding during file 11 was folded into DEFECT-011 instead of becoming its own entry, so the numbering has a
+deliberate gap, not a missing write-up.
 
 ## Release-gate verdict
 
-**Meets the suite's own release-gate condition for single-device use** (every Critical/High regression-pack row
-Pass; zero Blocker/Critical defects open in Order, Payment, Void, Day-close, or Sync on one device). The sole
-Critical blocker (DEFECT-003/008, multiple concurrent OPEN shifts on one device) is fixed and committed; every
-Major/High defect touching money-visible screens is also fixed and committed. Full unit + instrumented test
-suites pass (128 + 35 tests, zero failures).
+**Meets the suite's own release-gate condition, including multi-device use.** Every Critical/High
+regression-pack row passes; zero Blocker/Critical/Major defects remain open in Order, Payment, Void, Day-close,
+or Sync, on one device or several. DEFECT-016 (the last open item) is now fixed: a shift left OPEN by another
+device — and any bill still attached to it — is surfaced and closable instead of silently unreachable. Full unit
++ instrumented test suites pass (139 unit + 42 instrumented tests, zero failures, run on two connected
+emulators).
 
-**Does not yet meet the gate for multi-device use.** DEFECT-016 (below) is a Major data-integrity defect that
-only manifests with two-or-more devices sharing a Firebase project: a real open bill's revenue can become
-permanently unreachable from Close Day/Z-report. Any store actually running Warung POS on more than one device
-should not go live until this is resolved or a mitigation (e.g. a periodic "orphaned open bill" audit) is in
-place.
+**Note on scope:** DEFECT-016's fix (below) is a client-side visibility/recovery fix, not a change to the
+underlying sync architecture — the app is still offline-first with no server-enforced single-open-shift lock
+(a deliberate tradeoff to avoid requiring network access just to open a shift; see the rejected "server-enforced
+lock" option in the fix writeup). What changed is that the *consequence* of two devices each opening their own
+shift — an orphaned shift with a stranded bill — is now always recoverable through the UI, never silently lost.
 
-## New defect — found this session, not fixed
+## DEFECT-016 — fixed this session
 
-| ID | Area | Finding | Why it wasn't fixed here |
-|----|------|---------|---------------------------|
-| **DEFECT-016** | Sync / Day-Shift (multi-device) | The shared Firebase project has accumulated 24 separate OPEN shift rows over this engagement's history (across many past sessions/reinstalls). `getOpenShift()` always resolves to the single most-recently-opened one, so both devices agree on "the current shift" — but a real, live, unpaid Rp 55.000 bill is attached to a *different* OPEN shift that's no longer reachable via Close Day or the Z-report. Orders (by design) still shows it, since it's shift-agnostic, but there is no in-app path to ever close it out or have it counted in revenue. Confirmed identically on both `emulator-5554` and `emulator-5556` by pulling and querying each device's Room DB directly. | This is the concrete, harmful expression of a gap the test suite already documents and explicitly scopes as "outside the intended operating envelope" (TC-SYNC-050, gap R-1: no server-side single-open-day enforcement). Fixing it correctly requires a product/architecture decision — a reconciliation policy for inbound OPEN-shift sync, a cleanup job, or rescoping Close Day — not a same-pattern bug fix like the 14 above. Per user direction, logged for the product owner rather than fixed speculatively. |
+**Finding:** the shared Firebase project had accumulated 24 separate OPEN shift rows over this engagement's
+history. `getOpenShift()` always resolves to the single most-recently-opened one, so Close Day and the Z-report
+only ever operated on that one shift — any older OPEN shift, and any bill still attached to it, was permanently
+unreachable. Confirmed with a real, live, unpaid Rp 55.000 bill stranded this way, identically on both
+`emulator-5554` and `emulator-5556`.
 
-Full repro evidence (DB query output, screenshots) is in `EXECUTION_LOG.md`'s "Addendum — 2026-07-11 second
-session" at the end of the file.
+**Fix (Option 1 from the recommendation given to the user — "surface, don't hide," chosen over auto-merging
+shifts or a server-enforced lock, both of which carried real downsides):**
+- `ShiftDao`/`ShiftRepository` gained `getAllOpenShifts()`/`observeAllOpenShifts()` — every OPEN shift, not just
+  the newest.
+- `CloseShiftUseCase` now accepts an optional `shiftId`, so a specific non-current shift can be targeted (default
+  `null` preserves existing "close the current shift" behavior).
+- `ShiftCloseScreen`/`ShiftCloseViewModel` gained an "Other Open Shifts Detected" section: every other OPEN shift
+  is listed with its own revenue/expenses/open-bill-count, and its own closing-float input + Close button. A
+  shift with unresolved open bills shows a blocked state ("N open bill(s) must be resolved first — check
+  Orders") instead of a close button — the fix routes the owner *to* the stranded bill via the existing Orders
+  flow rather than force-closing around it.
+- `MoreScreen`'s "Close Day" menu item gained a badge (mirroring the existing low-stock badge pattern) showing
+  the open-shift count whenever it's more than 1, so the condition is visible without having to open Close Day
+  first.
+- **Edge case found and fixed during this work:** closing a shift is a check-then-act with no DB-level
+  atomicity (unlike opening one, which DEFECT-003/008 already made atomic) — nothing stopped the same shift
+  from being closed twice via a rapid double-tap, which would re-run `CloseShiftUseCase`/`GenerateZReportUseCase`
+  a second time. Added an `isClosing`-state guard (same pattern as DEFECT-004's `Mutex`) to both the primary and
+  per-row close actions. The much rarer cross-device double-close-the-same-shift race is accepted as a residual
+  risk, consistent with this app's offline-first design not enforcing any cross-device lock on shift state.
+
+**Verification:**
+- New tests: `ShiftDaoTest` (3 new cases for the multi-open-shift queries against a real Room DB),
+  `CloseShiftUseCaseTest` (4 new cases — explicit shiftId, still blocks on that shift's own bills, unknown
+  shiftId, staff role blocked on the shiftId path too), `ShiftCloseViewModelTest` (new file, 7 cases), 4 new
+  `ShiftCloseScreenTest` instrumented cases. 139 unit + 42 instrumented tests total, all passing.
+- **End-to-end on-device, both emulators:** rebuilt and reinstalled; confirmed the "Close Day" badge showed the
+  live open-shift count; opened Close Day and saw every other OPEN shift listed, including the one holding the
+  real stranded bill, correctly shown as blocked; closed an eligible other shift and watched it disappear from
+  the list reactively with a Z-report generated; **resolved the actual stranded bill** by voiding it via the
+  normal Orders flow; returned to Close Day and confirmed that shift was now unblocked and closable; closed it,
+  confirmed CLOSED status + Z-report in the DB. Registered a fresh third identity on Device B and confirmed both
+  closures (and the bill's VOID status) had synced correctly.
+
+Full repro evidence, code-level detail, and the fix recommendation/tradeoff table given to the user are in
+`EXECUTION_LOG.md`'s "Addendum — 2026-07-11 second session" and "Addendum — 2026-07-11 DEFECT-016 fix" sections
+at the end of the file.
 
 ## All defects — fixed and re-verified
 
@@ -57,6 +96,7 @@ session" at the end of the file.
 | **DEFECT-013** | Stock Opname | `StockOpnameViewModel` now persists every counted-qty/reason edit to the DB immediately, so navigating away and back reads the draft instead of stale data. | New `StockOpnameViewModelTest` simulating ViewModel recreation — a typed count and a variance reason both survive. |
 | **DEFECT-014** | Reports / Dashboard | (a) `DashboardScreen` gained an Expenses card. (b) `ReportsScreen`'s shift-scoped card relabeled "Current Shift Summary" (was "Day Summary", easily conflated with the adjacent genuinely-day-scoped "Today's Dashboard" link). | Manual verification (pure UI text/layout changes). |
 | **DEFECT-015** | i18n | Two independent bugs: (1) the prior locale-override mechanism never worked — replaced with the platform `LocaleManager` API called directly from `WarungPosApplication`/`LanguageSettingsViewModel`. (2) Indonesian resources lived in `values-id/`, but the runtime locale canonicalizes to legacy code `"in"` — renamed the folder to `values-in/`. | Confirmed via `adb shell cmd locale get-app-locales` and visually: bottom nav shows "Laporan"/"Lainnya" by default and switches live, in-session, to "Reports"/"More" with no restart. |
+| **DEFECT-016** | Sync / Day-Shift (multi-device) | Close Day now lists every OPEN shift (`ShiftDao.getAllOpenShifts()`), not just the most-recently-opened one; each is independently closable (or shown blocked if it still has open bills) via `CloseShiftUseCase(shiftId=...)`. A badge on the "Close Day" menu item surfaces the condition. See the dedicated section above for the full writeup. | New `ShiftDaoTest`/`CloseShiftUseCaseTest`/`ShiftCloseViewModelTest`/`ShiftCloseScreenTest` cases. End-to-end on-device: resolved the actual stranded bill via Orders, then closed its previously-unreachable shift, confirmed via DB and Z-report generation, confirmed synced correctly to a second device. |
 
 Full root-cause traces, code-level detail, and evidence for every fix above are in `EXECUTION_LOG.md`'s
 "Addendum — 2026-07-11 fix pass" section and inline under each defect's original write-up.

@@ -17,6 +17,14 @@ class FakeShiftRepository : ShiftRepository {
     override suspend fun getOpenShift(): Shift? =
         shifts.values.filter { it.status == ShiftStatus.OPEN }.maxByOrNull { it.openedAt }
 
+    override fun observeAllOpenShifts(): Flow<List<Shift>> =
+        flowOf(shifts.values.filter { it.status == ShiftStatus.OPEN }.sortedByDescending { it.openedAt })
+
+    override suspend fun getAllOpenShifts(): List<Shift> =
+        shifts.values.filter { it.status == ShiftStatus.OPEN }.sortedByDescending { it.openedAt }
+
+    override suspend fun getById(id: String): Shift? = shifts[id]
+
     override suspend fun saveShift(shift: Shift) {
         shifts[shift.id] = shift
     }

@@ -3167,3 +3167,116 @@ same bill), TC-MENU-038 / TC-PM-007 (menu/payment-method edit propagation) — d
 surfaced, since the shared backend's already-accumulated 24-shift backlog makes these devices non-representative
 of a clean two-device starting state. Worth re-running on two devices pointed at a **fresh** Firebase project
 (or after the shared project is cleaned up) to get an uncontaminated read on these.
+
+### Addendum — 2026-07-11 DEFECT-016 fix
+
+User asked to clear the shared RTDB project before this session; verification (pull a fresh device's Room DB
+after a full `pm clear` + re-registration) showed the same 24-25 OPEN shift rows and the same stranded
+Rp 55.000 bill still present — the clear either didn't target this data or didn't propagate. Proceeded with the
+fix using the existing (still-contaminated) backend as the test fixture, which turned out to be a more
+realistic/thorough test than a synthetic 2-shift setup would have been.
+
+**Recommendation given to the user before implementing (full tradeoff table in the conversation, condensed
+here):**
+
+| Option | Verdict |
+|--------|---------|
+| 1. Surface every open shift in Close Day, let the owner close each one | **Chosen.** Bounded, client-only, doesn't compromise offline-first, same testing pattern as the other 14 fixes. |
+| 2. Auto-merge/auto-close older shifts on inbound sync | Rejected — needs a real merge policy for revenue attribution; "the app closed my shift without me touching anything" is risky in a money app without extensive trust-building. |
+| 3. Server-enforced single-open-shift lock (RTDB rule + transaction) | Rejected — requires a network round-trip to open a shift, directly conflicting with TC-SYNC-001 (Critical/Blocker: full POS must work offline). |
+| 4. Operational-only (designate one device, manual audits) | Free but already relied on and already failed 25 times over this engagement; no in-app safety net. |
+
+**Implementation:**
+- `ShiftDao` (`data/local/dao/ShiftDao.kt`): added `getAllOpenShifts()` / `observeAllOpenShifts()` —
+  `SELECT * FROM shifts WHERE status = 'OPEN' ORDER BY openedAt DESC` (no `LIMIT 1`), alongside the existing
+  single-row `getOpenShift()`/`observeOpenShift()` which are unchanged and still used everywhere else.
+- `ShiftRepository`/`ShiftRepositoryImpl`: exposed the same, plus `getById(id)` (needed so `CloseShiftUseCase`
+  can target an arbitrary shift instead of always the repository's notion of "current").
+- `CloseShiftUseCase` (`domain/usecase/shift/CloseShiftUseCase.kt`): signature became
+  `invoke(countedCash: Long, shiftId: String? = null)`. `null` (the default) preserves every existing caller's
+  behavior exactly (falls back to `getOpenShift()`); a non-null id closes that specific shift, still running the
+  *same* owner-role check and the *same* `getOpenBillsForShift(shift.id)` block — a stray bill on shift A can
+  never block closing unrelated shift B, and vice versa.
+- `ShiftCloseViewModel` (`feature/shift/ShiftCloseViewModel.kt`): rewritten `init` block uses
+  `combine(observeOpenShift(), observeAllOpenShifts())` (not two independent collectors) specifically to avoid a
+  window where the current shift could transiently double-appear in the "others" list too, since both flows are
+  derived from the same underlying table and needed to agree on which id is "current" from the *same* emission.
+  Added `OtherOpenShift` data class (shift + revenue + expenses + openBillCount + per-row closingFloat/isClosing/
+  error), `onOtherShiftFloatChange`, `closeOtherShift`. Per-row float/error state is explicitly preserved across
+  re-emissions of the combined flow (looked up by shift id from the previous state) — otherwise every reactive
+  update (e.g. the *current* shift's revenue changing) would silently wipe out whatever an owner was mid-typing
+  into a different row's float field.
+- `ShiftCloseScreen` (`feature/shift/ShiftCloseScreen.kt`): new "Other Open Shifts Detected (N)" section, one
+  `OtherOpenShiftCard` per row — revenue/expenses summary, then either a red blocked message
+  ("N open bill(s) must be resolved first — check Orders") or a closing-float field + "Close This Shift" button.
+  New optional constructor params (`onOtherShiftFloatChange`, `onCloseOtherShift`) default to no-ops so the two
+  pre-existing `ShiftCloseScreenTest` cases kept compiling unchanged.
+- `AppNavGraph.kt`: wired the two new callbacks through to the ViewModel. No change to the existing
+  `LaunchedEffect(state.closedShiftId)` navigation-on-primary-close behavior — closing an *other* shift never
+  sets `closedShiftId` and never navigates away from Close Day, by design (the row just disappears once the
+  reactive query drops it).
+- `MoreViewModel`/`MoreScreen` (`feature/more/`): `MoreUiState` gained `openShiftCount`
+  (`shiftRepository.observeAllOpenShifts().map { it.size }`, combined alongside the existing `lowStockCount`
+  the same way). "Close Day" `MoreItem` now passes `badgeCount = if (state.openShiftCount > 1) state.openShiftCount else 0`
+  — no badge for the healthy 1-shift state, matching the existing low-stock badge convention.
+
+**Edge case found while implementing (not part of the original DEFECT-016 finding) — rapid double-close race:**
+`openIfNoneOpen` (DEFECT-003/008) made *opening* a shift atomic at the DB level; *closing* one was never given
+the same treatment because, before this fix, there was only ever one closable shift per screen visit. Once
+"other" shifts became independently closable, a rapid double-tap on the same "Close This Shift" button — or,
+far less likely, two devices tapping close on the same orphaned shift within the sync window — could run
+`CloseShiftUseCase`/`GenerateZReportUseCase` twice for one shift. Fixed with an `isClosing`-state guard checked
+synchronously before `viewModelScope.launch` (both for the primary `closeShift()` and `closeOtherShift()`),
+relying on Android's serial main-thread click dispatch — the same reasoning DEFECT-004's `Mutex` fix relied on
+for a structurally identical class of bug. The residual cross-device version of this race is accepted, not
+fixed — consistent with rejecting Option 3 above for the same offline-first reason.
+
+**Automated verification:**
+- `ShiftDaoTest` — 3 new cases against a real Room DB: `getAllOpenShifts()` returns every OPEN row in
+  newest-first order while `getOpenShift()` still resolves to just the newest; CLOSED rows are excluded;
+  `observeAllOpenShifts()` reactively drops a row once it's closed, no manual re-subscribe needed.
+- `CloseShiftUseCaseTest` — 4 new cases: an explicit `shiftId` closes that shift without touching the
+  repository's "current" shift; it still independently blocks on *that* shift's own open bills (and a bill on
+  one shift never blocks closing an unrelated one); an unknown `shiftId` fails cleanly with
+  `ShiftNotOpenException`; STAFF role is blocked on the `shiftId` path exactly as it already was on the default
+  path.
+- `ShiftCloseViewModelTest` (new file, 7 cases) — a lone open shift produces an empty `otherOpenShifts` list; a
+  second one appears there and *not* duplicated as "current"; open-bill count surfaces per row; closing an
+  eligible other shift flips its status without touching the current shift; closing one blocked by open bills
+  surfaces a row-level error rather than crashing; per-row float text is tracked independently per shift id;
+  closing the primary shift is unaffected by other shifts existing alongside it.
+- `ShiftCloseScreenTest` — 4 new instrumented cases: an eligible other shift shows its close button; a blocked
+  one shows the red message and no close button; the whole section is absent when there are no other open
+  shifts; tapping close invokes the callback with the correct shift id.
+- Full suite: **139 unit tests + 42 instrumented tests, zero failures**, run against both connected emulators
+  (`API_33_13`, `V2_API_33_13_V2`).
+
+**Manual end-to-end verification, both emulators (`emulator-5554`, `emulator-5556`):**
+1. Rebuilt debug APK, reinstalled on both. Registered fresh identities (`RetestA`, `RetestB`) — both pulled the
+   same still-contaminated backend (24-25 OPEN shifts, the same stranded Rp 55.000 bill), confirming the fix was
+   being tested against the real production-shaped problem, not a synthetic setup.
+2. Confirmed the "Close Day" badge on the More screen showed the live open-shift count ("26").
+3. Opened Close Day: "Other Open Shifts Detected (25)" rendered correctly, one card per shift, each with its own
+   revenue/expenses. The card for the shift holding the stranded bill (`94223653-…`, opened 16:19) correctly
+   showed "1 open bill(s) must be resolved first — check Orders" with no close button — the fix does not let an
+   owner blindly close around an unresolved bill.
+4. Closed an eligible other shift (`ed9b41d5-…`, opened 16:46, zero bills): tapped "Close This Shift" — the row
+   disappeared from the list on its own (no manual refresh). Verified via DB: `status='CLOSED'`, `closedAt` set,
+   a `z_reports` row created. Shift count moved from 26 OPEN/3 CLOSED to 25 OPEN/4 CLOSED.
+5. **Resolved the actual stranded bill**: navigated to Orders, opened "Counter - 16:26" (Rp 55.000, 11× NasiPutih),
+   voided it via the overflow menu → confirm dialog → Void Bill. Confirmed via DB: bill `status='VOID'`.
+6. Returned to Close Day: the previously-blocked shift (`94223653-…`) now showed a normal closing-float field and
+   "Close This Shift" button — the blocked message was gone, exactly as designed. Tapped close; verified via DB:
+   `status='CLOSED'`, a `z_reports` row created for it. **This is the definitive proof the fix resolves the
+   actual harm** — a bill that was structurally unreachable before this session is now closable end-to-end
+   through the normal Orders + Close Day flows.
+7. Installed the same build on Device B, registered a third fresh identity (`RetestB`). Confirmed via DB that
+   both closures and the bill's VOID status had synced correctly — Device B agreed with Device A on all three
+   pieces of state without any special handling, since the fix is a pure read-side (query) change plus normal
+   writes through the existing sync path.
+
+**Evidence:** `afterclose.db`/`afterclose2.db`/`finalstate.db`/`finalstate2.db`/`devb_check.db` (Room DB pulls
+at each step), on-device screenshots of the badge, the "Other Open Shifts Detected" list, the blocked-state
+card, and the post-resolution unblocked state.
+
+DEFECT-016 is now closed. All 15 numbered defects found across this entire engagement are fixed and verified.

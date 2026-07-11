@@ -43,6 +43,8 @@ fun ShiftCloseScreen(
     onFloatChange: (String) -> Unit,
     onCloseShift: () -> Unit,
     onBack: () -> Unit,
+    onOtherShiftFloatChange: (shiftId: String, value: String) -> Unit = { _, _ -> },
+    onCloseOtherShift: (shiftId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -161,7 +163,87 @@ fun ShiftCloseScreen(
                 }
             }
 
+            // DEFECT-016: shifts other than the current one that are still OPEN — most often
+            // left behind by another device. Surfaced here rather than hidden, so an owner
+            // always has a path to close them (and, transitively, so any bill still attached to
+            // one is never permanently unreachable — see OtherOpenShiftCard below).
+            if (state.otherOpenShifts.isNotEmpty()) {
+                item { Spacer(Modifier.height(8.dp)) }
+                item {
+                    Text(
+                        text = "Other Open Shifts Detected (${state.otherOpenShifts.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = "Likely opened by another device. Close each one to include it in reporting.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                items(state.otherOpenShifts, key = { it.shift.id }) { row ->
+                    OtherOpenShiftCard(
+                        row = row,
+                        onFloatChange = { value -> onOtherShiftFloatChange(row.shift.id, value) },
+                        onClose = { onCloseOtherShift(row.shift.id) },
+                    )
+                }
+            }
+
             item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun OtherOpenShiftCard(
+    row: ShiftCloseViewModel.OtherOpenShift,
+    onFloatChange: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Opened: ${DateUtil.toDisplayString(row.shift.openedAt)}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            SummaryRow(label = "Revenue", value = CurrencyFormatter.format(row.revenue))
+            SummaryRow(label = "Expenses", value = CurrencyFormatter.format(row.expenses))
+
+            if (row.openBillCount > 0) {
+                Text(
+                    text = "${row.openBillCount} open bill(s) must be resolved first — check Orders",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                OutlinedTextField(
+                    value = row.closingFloat,
+                    onValueChange = onFloatChange,
+                    label = { Text("Closing Cash Float (Rp)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    prefix = { Text("Rp ") },
+                    enabled = !row.isClosing,
+                )
+                row.error?.let { error ->
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    onClick = onClose,
+                    enabled = !row.isClosing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (row.isClosing) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Close This Shift")
+                    }
+                }
+            }
         }
     }
 }

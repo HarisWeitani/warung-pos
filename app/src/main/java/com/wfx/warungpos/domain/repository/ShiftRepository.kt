@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
 interface ShiftRepository {
     fun observeOpenShift(): Flow<Shift?>
     suspend fun getOpenShift(): Shift?
+
+    /** DEFECT-016: every OPEN shift, not just the most-recently-opened one. See [ShiftDao]. */
+    fun observeAllOpenShifts(): Flow<List<Shift>>
+    suspend fun getAllOpenShifts(): List<Shift>
+
+    suspend fun getById(id: String): Shift?
     suspend fun saveShift(shift: Shift)
 
     /** Atomically opens [shift] only if no shift is currently OPEN (checked and inserted in the

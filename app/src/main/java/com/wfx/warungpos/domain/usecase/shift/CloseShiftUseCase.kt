@@ -21,11 +21,19 @@ class CloseShiftUseCase @Inject constructor(
     private val sessionProvider: SessionProvider,
     private val generateZReportUseCase: GenerateZReportUseCase,
 ) {
-    suspend operator fun invoke(countedCash: Long): Result<String> {
+    /**
+     * DEFECT-016: [shiftId] lets the caller close a *specific* OPEN shift rather than always
+     * whichever one [ShiftRepository.getOpenShift] considers "current" (the most recently
+     * opened). Without this, any older OPEN shift left behind by another device — and any bill
+     * still attached to it — was permanently unreachable through Close Day. Defaults to null
+     * (close the current shift) to preserve existing callers' behavior.
+     */
+    suspend operator fun invoke(countedCash: Long, shiftId: String? = null): Result<String> {
         if (sessionProvider.currentUserRole != UserRole.OWNER) {
             return Result.failure(InsufficientPermissionsException())
         }
-        val shift = shiftRepository.getOpenShift() ?: return Result.failure(ShiftNotOpenException())
+        val shift = (if (shiftId != null) shiftRepository.getById(shiftId) else shiftRepository.getOpenShift())
+            ?: return Result.failure(ShiftNotOpenException())
 
         // DEFECT-003/008: scoped to this shift — the old getOpenBills() counted every open bill
         // across every shift that has ever existed, so a stray open bill on an unrelated shift

@@ -29,6 +29,14 @@ class ShiftRepositoryImpl @Inject constructor(
 
     override suspend fun getOpenShift(): Shift? = shiftDao.getOpenShift()?.toDomain()
 
+    override fun observeAllOpenShifts(): Flow<List<Shift>> =
+        shiftDao.observeAllOpenShifts().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun getAllOpenShifts(): List<Shift> =
+        shiftDao.getAllOpenShifts().map { it.toDomain() }
+
+    override suspend fun getById(id: String): Shift? = shiftDao.getById(id)?.toDomain()
+
     override suspend fun saveShift(shift: Shift) {
         shiftDao.upsert(
             shift.copy(

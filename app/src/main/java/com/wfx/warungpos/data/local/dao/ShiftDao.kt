@@ -19,6 +19,20 @@ interface ShiftDao {
     suspend fun getOpenShift(): ShiftEntity?
 
     /**
+     * DEFECT-016: [getOpenShift]/[observeOpenShift] only ever surface the single
+     * most-recently-opened shift. When a second device (or a historical un-closed session) has
+     * left another shift OPEN, that older shift — and any bill still attached to it — becomes
+     * permanently unreachable through the normal Close Day flow, since it's never the "most
+     * recent" one. These return every OPEN shift so the UI can surface and let the owner close
+     * each of them, not just the newest.
+     */
+    @Query("SELECT * FROM shifts WHERE status = 'OPEN' ORDER BY openedAt DESC")
+    fun observeAllOpenShifts(): Flow<List<ShiftEntity>>
+
+    @Query("SELECT * FROM shifts WHERE status = 'OPEN' ORDER BY openedAt DESC")
+    suspend fun getAllOpenShifts(): List<ShiftEntity>
+
+    /**
      * DEFECT-003/008: opens [entity] only if no shift is currently OPEN, checked and inserted in
      * the same DB transaction. Room serializes concurrent writer transactions on one connection,
      * so this closes the check-then-act race that let two call sites (app-start and

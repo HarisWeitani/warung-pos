@@ -128,7 +128,14 @@ fun MoreScreen(
                     MoreItem("Payment Methods", Icons.Default.Payments, onClick = onNavigateToPaymentMethods)
                     MoreItem("Expense Categories", Icons.Default.Payments, onClick = onNavigateToExpenseCategories)
                     MoreItem("Language", Icons.Default.Language, onClick = onNavigateToLanguage)
-                    MoreItem("Close Day", Icons.Default.TableBar, onClick = onNavigateToShiftClose)
+                    MoreItem(
+                        "Close Day",
+                        Icons.Default.TableBar,
+                        onClick = onNavigateToShiftClose,
+                        // DEFECT-016: only badge when there's more than one — exactly one OPEN
+                        // shift is the normal, healthy state and shouldn't look like a warning.
+                        badgeCount = if (state.openShiftCount > 1) state.openShiftCount else 0,
+                    )
                     MoreItem("About", Icons.Default.Info, onClick = onNavigateToAbout)
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }
