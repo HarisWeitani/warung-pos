@@ -3107,3 +3107,63 @@ suites pass: 128 unit tests, 35 instrumented tests, zero failures.
 closed in the same prior session). No new defects were introduced or discovered during this pass — the full
 unit + instrumented suites (128 + 35 tests) pass cleanly, and every fix was verified against its documented
 repro, not just compiled.
+
+### Addendum — 2026-07-11 second session: two real emulators available, multi-device cases attempted
+
+A second emulator (`emulator-5556`) became available alongside the original (`emulator-5554`), making E3
+(two-device) cases testable for the first time this whole engagement. Built and installed the current debug APK
+on both, registered two fresh identities (`DeviceA` on 5554, `DeviceB` on 5556, both PIN `1234`), both online
+from first launch (same shared Firebase project `warungpos-8cf50` used throughout this suite).
+
+**TC-ONB-007 — Second device: no duplicate payment methods after sync — ✅ PASS.** Both devices show the
+identical 5 fixed-ID payment methods (`pm_tunai`, `pm_qris`, `pm_gopay`, `pm_ovo`, `pm_transfer`) with matching
+`isActive` state, confirmed by pulling and diffing each device's `payment_methods` table directly. Zero
+duplication — the fixed-ID design works as intended.
+
+**TC-SYNC-050 (split-brain shift) — attempted, but the shared backend already contained the failure mode before
+any new race was introduced this session.** Both devices, on first registration, immediately pulled down the
+**entire historical shift table** from the shared RTDB project (a consequence of the "operational note" incident
+logged in File 13 above, plus similar incidents across the multi-day QA history: this project's RTDB has
+accumulated shift rows from every session that ever synced against it). Querying each device's local Room DB
+directly (`shifts` table) after first sync:
+
+```
+Device A: 24 OPEN, 3 CLOSED  (27 shift rows total)
+Device B: 24 OPEN, 3 CLOSED  (27 shift rows total)   -- identical to Device A
+```
+
+Both devices agree byte-for-byte on which shift `ShiftDao.getOpenShift()` (`ORDER BY openedAt DESC LIMIT 1`)
+currently selects as "the" open shift (`163a157a-…`, opened `2026-07-11 17:22:00.013`, zero bills attached). This
+part is *good* news: `ConflictResolver`'s LWW-by-`updatedAt` model means both devices converge on the exact same
+"current" shift, so there is no per-device disagreement about which shift is active — DEFECT-003/008's per-device
+race fix is not undermined by this.
+
+**New finding — DEFECT-016 (Major, Data integrity): a live open bill is permanently unreachable from Close
+Day/Z-report once its shift is no longer the most-recently-opened one.** One of the 24 OPEN shifts
+(`94223653-…`, opened `2026-07-11 16:19`) has a real, unpaid, non-void bill attached: `Counter - 16:26`, Rp
+55.000 (confirmed on both devices' `bills` table, `status='OPEN'`). This bill is visible in the **Orders** tab on
+both devices (`OrderViewModel` uses the unscoped `BillDao.observeOpenBills()`, which is correctly shift-agnostic
+by design — Orders is meant to surface every currently-open bill regardless of shift bucketing). But **Close
+Day** and **Reports** are scoped to `getOpenShift()`'s single "most recent" pick (`163a157a-…`, a different
+shift with zero bills) — there is no UI path that ever lets a user close, or a Z-report ever include,
+`94223653-…`'s Rp 55.000 bill. It is structurally impossible to reach through the app once a newer shift has been
+opened by any device. This is TC-SYNC-050's documented, acknowledged architectural gap ("no server-side
+single-open-day enforcement... outside the intended operating envelope") — but concretely demonstrated here with
+real, currently-live money silently excluded from revenue reporting, not merely a duplicate-row cosmetic issue.
+
+Per user direction (2026-07-11), this is logged as a new defect for the product owner's attention rather than
+fixed in this session — a correct fix requires an architectural/product decision (e.g., a reconciliation policy
+for inbound OPEN-shift sync, a periodic cleanup job, or scoping Orders/Close Day differently) that goes beyond
+the established pattern of this fix pass's other defects. **DEFECT-003/008's own fix is unaffected and still
+holds** — it only ever claimed to close the *single-device* concurrent-open race, which remains closed (see
+`ShiftDaoTest`'s 20-way concurrent test, still passing).
+
+**Evidence:** `a.db`/`a.db-wal`, `b.db`/`b.db-wal` (both devices' pulled Room databases, `shifts`/`bills`/
+`payment_methods` tables queried directly via `sqlite3`), on-device screenshots of both devices' Orders/
+Reports/Close Day/Z-report screens taken throughout.
+
+**Not attempted this pass:** TC-ORD-053/054 (concurrent append-only item adds), TC-PAY-020 (two devices pay the
+same bill), TC-MENU-038 / TC-PM-007 (menu/payment-method edit propagation) — deprioritized once DEFECT-016
+surfaced, since the shared backend's already-accumulated 24-shift backlog makes these devices non-representative
+of a clean two-device starting state. Worth re-running on two devices pointed at a **fresh** Firebase project
+(or after the shared project is cleaned up) to get an uncontaminated read on these.
